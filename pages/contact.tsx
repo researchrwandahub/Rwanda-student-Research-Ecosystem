@@ -1,4 +1,4 @@
-import Layout from "../components/Layout";
+﻿import Layout from "../components/Layout";
 import { SITE, SITE_CONTACT } from "../config/site";
 
 export default function ContactPage() {
@@ -17,7 +17,7 @@ export default function ContactPage() {
             <div className="rsjh-card p-7">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Email</p>
               <h2 className="mt-3 text-2xl font-black text-slate-950">Editorial office</h2>
-              <a href={`mailto:${SITE_CONTACT.editorialEmail}`} className="mt-4 inline-flex items-center rounded-xl bg-blue-900 px-5 py-3 text-lg font-bold text-white hover:bg-blue-950">Email the RSJH Editorial Office →</a>
+              <a href={`mailto:${SITE_CONTACT.editorialEmail}`} className="mt-4 inline-flex items-center rounded-xl bg-blue-900 px-5 py-3 text-lg font-bold text-white hover:bg-blue-950">Email the RSJH Editorial Office â†’</a>
               <p className="mt-3 text-sm text-slate-500">{SITE_CONTACT.editorialEmail}</p>
               <p className="mt-3 text-sm leading-6 text-slate-600">Use this contact for manuscript, editorial, partnership and research-platform enquiries.</p>
             </div>
@@ -41,7 +41,7 @@ export default function ContactPage() {
                 {SITE_CONTACT.linkedin && <a href={SITE_CONTACT.linkedin} target="_blank" rel="noreferrer" className="text-blue-700">LinkedIn</a>}
                 {SITE_CONTACT.twitter && <a href={SITE_CONTACT.twitter} target="_blank" rel="noreferrer" className="text-slate-800">X / Twitter</a>}
                 {SITE_CONTACT.instagram && <a href={SITE_CONTACT.instagram} target="_blank" rel="noreferrer" className="text-pink-700">Instagram</a>}
-                {!SITE_CONTACT.linkedin && !SITE_CONTACT.twitter && !SITE_CONTACT.instagram && <span className="text-slate-500">Social profiles can be added in frontend/config/site.ts</span>}
+                {!SITE_CONTACT.linkedin && !SITE_CONTACT.twitter && !SITE_CONTACT.instagram && <span className="text-slate-500"></span>}
               </div>
             </div>
           </div>
@@ -57,3 +57,4 @@ export default function ContactPage() {
     </Layout>
   );
 }
+
