@@ -1,21 +1,19 @@
 ﻿import axios from "axios";
 
 const configuredBase =
-  process.env.NEXT_PUBLIC_API_URL || "/api";
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://127.0.0.1:8000/api";
 
-const cleanBase = configuredBase.replace(/\/+$/, "");
+const API_BASE = configuredBase
+  .replace(/\/$/, "")
+  .endsWith("/api")
+  ? configuredBase.replace(/\/$/, "")
+  : `${configuredBase.replace(/\/$/, "")}/api`;
 
-const API_BASE = cleanBase.endsWith("/api")
-  ? cleanBase
-  : `${cleanBase}/api`;
-
-export const API_ORIGIN = API_BASE.endsWith("/api")
-  ? API_BASE.slice(0, -4)
-  : API_BASE;
+export const API_ORIGIN = API_BASE.replace(/\/api$/, "");
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
   headers: {
     Accept: "application/json",
   },
@@ -47,8 +45,7 @@ async function refreshAccessToken() {
     return null;
   }
 
-  const refreshToken =
-    localStorage.getItem("rmsjRefresh");
+  const refreshToken = localStorage.getItem("rmsjRefresh");
 
   if (!refreshToken) {
     return null;
@@ -56,38 +53,28 @@ async function refreshAccessToken() {
 
   if (!refreshPromise) {
     refreshPromise = axios
-      .post(
-        `${API_BASE}/auth/token/refresh/`,
-        {
-          refresh: refreshToken,
-        },
-        {
-          timeout: 8000,
-        }
-      )
+      .post(`${API_BASE}/auth/token/refresh/`, {
+        refresh: refreshToken,
+      })
       .then((response) => {
-        const access = response.data?.access;
+        const newAccessToken = response.data?.access;
 
-        if (!access) {
+        if (!newAccessToken) {
           throw new Error("No access token returned.");
         }
 
-        localStorage.setItem("rmsjToken", access);
+        localStorage.setItem("rmsjToken", newAccessToken);
 
-        return access;
+        return newAccessToken;
       })
       .catch((error) => {
-        [
-          "rmsjToken",
-          "rmsjRefresh",
-          "rmsjRefreshToken",
-          "rmsjRole",
-          "rmsjUsername",
-          "rmsjFullName",
-          "rmsjUser",
-        ].forEach((key) =>
-          localStorage.removeItem(key)
-        );
+        localStorage.removeItem("rmsjToken");
+        localStorage.removeItem("access");
+        localStorage.removeItem("token");
+        localStorage.removeItem("rmsjRefresh");
+        localStorage.removeItem("rmsjRole");
+        localStorage.removeItem("rmsjUsername");
+        localStorage.removeItem("rmsjFullName");
 
         window.dispatchEvent(
           new Event("rmsj-auth-changed")
@@ -105,7 +92,6 @@ async function refreshAccessToken() {
 
 api.interceptors.response.use(
   (response) => response,
-
   async (error) => {
     const originalRequest = error.config;
 
@@ -118,9 +104,7 @@ api.interceptors.response.use(
     }
 
     if (
-      originalRequest.url?.includes(
-        "/auth/token/"
-      )
+      originalRequest.url?.includes("/auth/token/")
     ) {
       return Promise.reject(error);
     }
@@ -139,10 +123,10 @@ api.interceptors.response.use(
     originalRequest._retry = true;
 
     try {
-      const newAccess =
+      const newAccessToken =
         await refreshAccessToken();
 
-      if (!newAccess) {
+      if (!newAccessToken) {
         return Promise.reject(error);
       }
 
@@ -150,32 +134,36 @@ api.interceptors.response.use(
         originalRequest.headers || {};
 
       originalRequest.headers.Authorization =
-        `Bearer ${newAccess}`;
+        `Bearer ${newAccessToken}`;
 
       return api(originalRequest);
     } catch (refreshError) {
+      if (
+        !window.location.pathname.startsWith("/auth/")
+      ) {
+        window.location.href = "/auth/login";
+      }
+
       return Promise.reject(refreshError);
     }
   }
 );
 
 export function absoluteUrl(path) {
-  if (!path) return "";
+  if (!path) {
+    return "";
+  }
 
   if (/^https?:\/\//i.test(path)) {
     return path;
   }
 
   return `${API_ORIGIN}${
-    path.startsWith("/")
-      ? path
-      : `/${path}`
+    path.startsWith("/") ? path : `/${path}`
   }`;
 }
 
-export async function fetchLatestArticles(
-  limit = 10
-) {
+export async function fetchLatestArticles(limit = 10) {
   const response = await api.get(
     `/articles/?is_published=true&page_size=${limit}`
   );
