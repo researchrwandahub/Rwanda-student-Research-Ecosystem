@@ -1,0 +1,3 @@
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+export default function ReviewerRegisterRedirect(){const router=useRouter();useEffect(()=>{router.replace('/auth/register?role=reviewer')},[router]);return <div className="min-h-screen flex items-center justify-center">Redirecting to RSJH registration…</div>}

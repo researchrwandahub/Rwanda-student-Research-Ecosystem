@@ -1,0 +1,1 @@
+V15 fixes admin editorial board creation with writable user selector, biography/specialty fields, and unified Reviewer/Editor/EIC invitation generation.

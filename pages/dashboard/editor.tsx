@@ -1,0 +1,1 @@
+import RoleDashboard from "../../components/RoleDashboard"; export default function Editor(){return <RoleDashboard role="editor"/>}

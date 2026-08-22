@@ -1,0 +1,33 @@
+from django.urls import path
+from .views import RSREConfigView, RSREDashboardView, SupportTicketListCreateView, SupportTicketDetailView, NotificationPreferenceView, AdminDashboardView, AdminAuditView, AdminNotificationsView, AdminApplicationsView, AdminApplicationDetailView, AdminSettingsView, AdminContentView, AdminContentDetailView, AdminSupportView, AdminReplySupportView, AdminFeatureComponentView, AdminFeatureComponentDetailView, WhatsAppCommunityView, WhatsAppCommunityDetailView, AdminWhatsAppCommunityView, AdminWhatsAppCommunityDetailView, EthicsAssessmentListCreateView, EthicsAssessmentDetailView, EthicsResourceListView, AdminEthicsResourceView, AdminEthicsResourceDetailView, CollaborationNetworkView, CollaborationRequestActionView
+
+urlpatterns=[
+    path('config/', RSREConfigView.as_view()),
+    path('dashboard/', RSREDashboardView.as_view()),
+    path('support/', SupportTicketListCreateView.as_view()),
+    path('support/<int:pk>/', SupportTicketDetailView.as_view()),
+    path('notifications/preferences/', NotificationPreferenceView.as_view()),
+    path('admin/dashboard/', AdminDashboardView.as_view()),
+    path('admin/audit/', AdminAuditView.as_view()),
+    path('admin/notifications/', AdminNotificationsView.as_view()),
+    path('admin/applications/', AdminApplicationsView.as_view()),
+    path('admin/applications/<int:pk>/', AdminApplicationDetailView.as_view()),
+    path('admin/settings/', AdminSettingsView.as_view()),
+    path('admin/content/', AdminContentView.as_view()),
+    path('admin/content/<int:pk>/', AdminContentDetailView.as_view()),
+    path('admin/support/', AdminSupportView.as_view()),
+    path('admin/support/<int:pk>/reply/', AdminReplySupportView.as_view()),
+    path('admin/components/', AdminFeatureComponentView.as_view()),
+    path('admin/components/<int:pk>/', AdminFeatureComponentDetailView.as_view()),
+    path('whatsapp/communities/', WhatsAppCommunityView.as_view()),
+    path('whatsapp/communities/<int:pk>/', WhatsAppCommunityDetailView.as_view()),
+    path('admin/whatsapp/communities/', AdminWhatsAppCommunityView.as_view()),
+    path('admin/whatsapp/communities/<int:pk>/', AdminWhatsAppCommunityDetailView.as_view()),
+    path('collaboration/', CollaborationNetworkView.as_view()),
+    path('collaboration/requests/<int:pk>/', CollaborationRequestActionView.as_view()),
+    path('ethics/assessments/', EthicsAssessmentListCreateView.as_view()),
+    path('ethics/assessments/<int:pk>/', EthicsAssessmentDetailView.as_view()),
+    path('ethics/resources/', EthicsResourceListView.as_view()),
+    path('admin/ethics/resources/', AdminEthicsResourceView.as_view()),
+    path('admin/ethics/resources/<int:pk>/', AdminEthicsResourceDetailView.as_view()),
+]

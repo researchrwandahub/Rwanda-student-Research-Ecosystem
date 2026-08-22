@@ -1,0 +1,262 @@
+from django.urls import path, include
+
+from rest_framework.routers import DefaultRouter
+
+from rest_framework_simplejwt.views import (
+    TokenRefreshView,
+)
+
+from .views import (
+    RegisterView,
+    PartnerViewSet,
+    FoundingMemberViewSet,
+    ResearchDiscoveryView, ExternalOpportunityDiscoveryView,
+    CustomTokenObtainPairView,
+    UserViewSet,
+    ProfileView,
+    ArticleViewSet,
+    ReviewViewSet,
+    ReviewAssignmentViewSet,
+    BookmarkViewSet,
+    NotificationViewSet,
+    AuthorDashboardView,
+    send_invitation, publication_settings_view,
+
+    # Analytics
+    TopDiseasesAnalyticsView,
+    GeographyAnalyticsView,
+    SpecialtyAnalyticsView,
+    PublicationTrendAnalyticsView,
+
+    # MedTech AI
+    MedTechAIResearchSearchView, MedTechAIChatView,
+    EditorialDecisionViewSet,
+    AIUsageViewSet,
+    RSJHAIAssistView, VerifyEmailView, RequestPasswordResetView, ConfirmPasswordResetView, ResearchPassportView, PassportEvidenceView, PassportEvidenceDetailView, ResearchIdeaViewSet, ResearchProjectViewSet, ResearchOpportunityViewSet, EditorialBoardViewSet, StudentGiftView, AdminGiftPaymentConfirmView, ResearchSandboxWorkspaceViewSet,
+)
+
+
+# =========================================================
+# API ROUTER
+# =========================================================
+
+router = DefaultRouter()
+
+
+# =========================================================
+# USERS
+# =========================================================
+
+router.register(
+    "users",
+    UserViewSet,
+    basename="users",
+)
+
+
+# =========================================================
+# ARTICLES
+# =========================================================
+
+router.register(
+    "articles",
+    ArticleViewSet,
+    basename="articles",
+)
+
+
+# =========================================================
+# REVIEWS
+# =========================================================
+
+router.register(
+    "reviews",
+    ReviewViewSet,
+    basename="reviews",
+)
+
+
+# =========================================================
+# REVIEW ASSIGNMENTS
+# =========================================================
+
+router.register(
+    "assignments",
+    ReviewAssignmentViewSet,
+    basename="assignments",
+)
+
+
+router.register(
+    "editorial-decisions",
+    EditorialDecisionViewSet,
+    basename="editorial-decisions",
+)
+
+router.register("ai/usage",AIUsageViewSet,basename="ai-usage")
+router.register("research-ideas",ResearchIdeaViewSet,basename="research-ideas")
+router.register("research-projects",ResearchProjectViewSet,basename="research-projects")
+router.register("research-opportunities",ResearchOpportunityViewSet,basename="research-opportunities")
+router.register("research-sandbox", ResearchSandboxWorkspaceViewSet, basename="research-sandbox")
+router.register("editorial-board",EditorialBoardViewSet,basename="editorial-board")
+router.register("partners",PartnerViewSet,basename="partners")
+router.register("founding-members",FoundingMemberViewSet,basename="founding-members")
+
+
+# =========================================================
+# BOOKMARKS
+# =========================================================
+
+router.register(
+    "bookmarks",
+    BookmarkViewSet,
+    basename="bookmarks",
+)
+
+
+# =========================================================
+# NOTIFICATIONS
+# =========================================================
+
+router.register(
+    "notifications",
+    NotificationViewSet,
+    basename="notifications",
+)
+
+
+# =========================================================
+# URL PATTERNS
+# =========================================================
+
+urlpatterns = [
+
+    # =====================================================
+    # AUTHENTICATION
+    # =====================================================
+
+    path(
+        "auth/register/",
+        RegisterView.as_view(),
+        name="register",
+    ),
+
+    path(
+        "auth/token/",
+        CustomTokenObtainPairView.as_view(),
+        name="token",
+    ),
+
+    path("auth/verify-email/",VerifyEmailView.as_view()),
+    path("auth/password-reset/",RequestPasswordResetView.as_view()),
+    path("auth/password-reset/confirm/",ConfirmPasswordResetView.as_view()),
+    path("research-passport/",ResearchPassportView.as_view()),
+    path("research-passport/evidence/",PassportEvidenceView.as_view()),
+    path("research-passport/evidence/<int:pk>/",PassportEvidenceDetailView.as_view()),
+    path("research-discovery/", ResearchDiscoveryView.as_view()),
+    path("opportunity-discovery/", ExternalOpportunityDiscoveryView.as_view()),
+    path(
+        "auth/token/refresh/",
+        TokenRefreshView.as_view(),
+        name="token_refresh",
+    ),
+
+
+    # =====================================================
+    # REVIEWER INVITATION
+    # =====================================================
+
+    path(
+        "reviewer-invitations/",
+        send_invitation, publication_settings_view,
+        name="reviewer-invitation",
+    ),
+
+
+    # =====================================================
+    # PROFILE
+    # =====================================================
+
+    path(
+        "profile/",
+        ProfileView.as_view(),
+        name="profile",
+    ),
+
+
+    # =====================================================
+    # AUTHOR DASHBOARD
+    # =====================================================
+
+    path(
+        "author/dashboard/",
+        AuthorDashboardView.as_view(),
+        name="author-dashboard",
+    ),
+
+
+    # =====================================================
+    # ANALYTICS
+    # =====================================================
+
+    path(
+        "analytics/top-diseases/",
+        TopDiseasesAnalyticsView.as_view(),
+        name="top-diseases",
+    ),
+
+    path(
+        "analytics/geography/",
+        GeographyAnalyticsView.as_view(),
+        name="geography",
+    ),
+
+    path(
+        "analytics/specialties/",
+        SpecialtyAnalyticsView.as_view(),
+        name="specialties",
+    ),
+
+    path(
+        "analytics/publications-trend/",
+        PublicationTrendAnalyticsView.as_view(),
+        name="publication-trend",
+    ),
+
+
+    # =====================================================
+    # MEDTECH AI RESEARCH SEARCH
+    # =====================================================
+
+    path(
+        "ai/research-search/",
+        MedTechAIResearchSearchView.as_view(),
+        name="ai-research-search",
+    ),
+
+    path(
+        "ai/assist/",
+        RSJHAIAssistView.as_view(),
+        name="ai-assist",
+    ),
+
+    path(
+        "ai/chat/",
+        MedTechAIChatView.as_view(),
+        name="ai-chat",
+    ),
+
+
+    # =====================================================
+    # ROUTER
+    # =====================================================
+
+    path("gift/request/", StudentGiftView.as_view(), name="student-gift"),
+    path("gift/redeem/", StudentGiftView.as_view(), name="student-gift-redeem"),
+    path("admin/gifts/<int:pk>/confirm/", AdminGiftPaymentConfirmView.as_view(), name="admin-gift-confirm"),
+
+    path(
+        "",
+        include(router.urls),
+    ),
+]

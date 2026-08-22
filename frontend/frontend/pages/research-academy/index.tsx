@@ -1,0 +1,24 @@
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import ApplicationShell from '../../components/ApplicationShell'
+import api from '../../utils/api'
+
+export default function Academy(){
+  const [data,setData]=useState<any>(null)
+  useEffect(()=>{api.get('/academy/').then(r=>setData(r.data)).catch(()=>setData(null))},[])
+  const levels=data?.levels||[]
+  const start=(id:number)=>{if(!localStorage.getItem('rmsjToken')){window.location.href=`/auth/login?next=/research-academy/module/${id}`;return};window.location.href=`/research-academy/module/${id}`}
+  return <ApplicationShell name="Research Academy" description="Health research training and competency development." nav={[["/research-academy","Academy Home"],["/research-academy/dashboard","My Learning"],["/research-academy/diagnostic","Entry Assessment"],["/research-academy/certificates","Certificates"],["/research-academy/questions","Questions"]]}>
+    <main className="mx-auto max-w-7xl px-6 pb-16">
+      <section className="rounded-[2rem] bg-gradient-to-br from-[#061a2f] via-[#0b2450] to-emerald-800 p-8 text-white md:p-12">
+        <div className="text-sm font-black uppercase tracking-[0.2em] text-emerald-300">Learn · Practice · Assess · Progress</div>
+        <h2 className="mt-4 max-w-4xl text-4xl font-black md:text-6xl">From curiosity to research impact.</h2>
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-blue-100">Build practical skills for health research—from your first research question to peer review and publication.</p>
+        <div className="mt-7 flex flex-wrap gap-3"><Link href="/research-academy/diagnostic" className="rounded-xl bg-white px-5 py-3 font-black text-slate-950">Take entry assessment</Link><Link href="/research-academy/dashboard" className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-black text-white">My Learning</Link></div>
+      </section>
+      <section className="mt-8 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Professional pathway</div><h3 className="mt-2 text-2xl font-black text-slate-950">Progress from first principles to independent research.</h3><div className="mt-5 grid gap-3 md:grid-cols-4">{[['01','Starter','Research vocabulary, scientific thinking and integrity.'],['02','Foundations','Questions, designs, ethics, evidence and statistics.'],['03','Applied','Protocols, data, analysis and real projects.'],['04','Professional','Publication, peer review, leadership and mentoring.']].map(([n,t,d])=><div key={n} className="rounded-2xl border border-white bg-white p-4 shadow-sm"><div className="text-xs font-black text-emerald-700">{n}</div><div className="mt-1 font-black">{t}</div><p className="mt-1 text-xs leading-5 text-slate-500">{d}</p></div>)}</div></section>
+      <section className="mt-10"><div className="flex flex-wrap items-end justify-between gap-4"><div><div className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">Curriculum</div><h3 className="mt-2 text-3xl font-black">Actual learning modules</h3></div><span className="text-sm font-bold text-slate-500">{levels.reduce((n:number,l:any)=>n+(l.modules?.length||0),0)} modules</span></div>
+        <div className="mt-7 space-y-6">{levels.map((level:any)=><div key={level.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-[0.15em] text-blue-700">Level {level.number}</div><h4 className="mt-1 text-2xl font-black">{level.name}</h4><p className="mt-1 text-sm text-slate-500">{level.description}</p></div><span className={level.unlocked?'rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700':'rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500'}>{level.unlocked?'Unlocked':'Locked'}</span></div><div className="mt-5 grid gap-3 md:grid-cols-2">{(level.modules||[]).map((m:any)=><div key={m.id} className={`rounded-2xl border p-4 ${m.unlocked?'border-emerald-200 bg-emerald-50/40':'border-slate-200 bg-slate-50'}`}><div className="flex items-start justify-between gap-3"><div><div className="text-sm font-black">{m.order}. {m.title}</div><div className="mt-1 text-xs text-slate-500">{m.lessons?.length||0} lessons · {Math.max(1,Math.round((m.estimated_minutes||60)/60*10)/10)} h</div></div><span>{m.completed?'✓':m.unlocked?'→':'🔒'}</span></div>{m.unlocked?<button onClick={()=>start(m.id)} className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white">{m.completed?'Review module':'Start learning →'}</button>:<div className="mt-4 text-xs font-bold text-slate-500">Complete required previous learning first.</div>}</div>)}</div></div>)}</div></section>
+    </main>
+  </ApplicationShell>
+}
