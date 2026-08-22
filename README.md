@@ -1,17 +1,15 @@
-# Rwanda Student Journal for Health (RSJH) — Frontend
+# RSRE Render deployment patch
 
-The Next.js frontend implements the RSJH student research journey.
+This patch is for the existing RSRE repository. It does not replace the application.
 
-## Main experience
+Copy:
+- `Dockerfile` -> repository root
+- `backend/Dockerfile` -> `backend/Dockerfile`
+- `render.yaml` -> repository root
 
-- Student profiles include health discipline and academic stage.
-- Manuscript submission captures research question, discipline, article type, ethics, funding, data availability and AI-use statement.
-- Author dashboard shows the manuscript journey and reviewer feedback.
-- Revision workspace supports response-to-reviewers and revised manuscript upload.
-- Reviewer dashboard supports assignment, manuscript download and recommendation.
-- Editorial management supports final accept/revision/reject decisions.
-- RSJH AI assistance is available inside authenticated research workflow areas.
-
-## Brand
-
-The user-facing project name is **Rwanda Student Journal for Health (RSJH)**. Internal legacy route and variable names may still use older project identifiers where changing them would break existing imports or saved URLs.
+Important:
+- Root service = full RSRE Next.js application.
+- Backend service = `backend/` Django application.
+- Backend health check = `/health/`.
+- Do NOT commit `backend/.env` or any real secrets.
+- The free Render Postgres database is for testing and expires after 30 days.

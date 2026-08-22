@@ -1,0 +1,75 @@
+services:
+  - type: web
+    name: rsre-frontend
+    runtime: docker
+    plan: free
+    region: ohio
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://rsre-backend.onrender.com/api
+
+  - type: web
+    name: rsre-backend
+    runtime: docker
+    plan: free
+    region: ohio
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://rsre-frontend.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://rsre-frontend.onrender.com
+      - key: FRONTEND_URL
+        value: https://rsre-frontend.onrender.com
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: rsre-postgres
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: rsre-postgres
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: rsre-postgres
+          property: password
+      - key: DB_HOST
+        fromDatabase:
+          name: rsre-postgres
+          property: host
+      - key: DB_PORT
+        value: "5432"
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: RSRE <researchrwandahub@gmail.com>
+
+databases:
+  - name: rsre-postgres
+    plan: free
+    region: ohio
+    databaseName: rmsj
+    user: rmsj
+    diskSizeGB: 1
