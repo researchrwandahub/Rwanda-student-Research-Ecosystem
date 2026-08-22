@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+﻿FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -17,6 +17,4 @@ COPY . .
 
 RUN python manage.py collectstatic --noinput
 
-EXPOSE 8000
-
-CMD ["gunicorn", "rmsj.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]
+CMD ["sh", "-c", "gunicorn rmsj.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --timeout 120 --access-logfile - --error-logfile -"]
