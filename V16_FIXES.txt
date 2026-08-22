@@ -1,0 +1,1 @@
+V16 fixes the Administrator routing duplication: /dashboard/admin now redirects to /dashboard/administrator, and the old reviewer-only admin dashboard is removed from the active flow. The canonical Administrator dashboard links directly to Editorial Board Management and the single invitation generator.
