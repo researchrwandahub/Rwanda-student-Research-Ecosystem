@@ -15,7 +15,7 @@ export const API_ORIGIN = API_BASE.endsWith("/api")
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     Accept: "application/json",
   },
@@ -208,4 +208,5 @@ export async function fetchArticle(id) {
 }
 
 export default api;
+
 
