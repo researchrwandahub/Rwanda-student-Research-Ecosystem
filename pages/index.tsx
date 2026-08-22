@@ -20,93 +20,35 @@ type Article = {
   };
 };
 
+type AcademyItem = {
+  id: number | string;
+  title?: string;
+  name?: string;
+  description?: string;
+  summary?: string;
+  level?: string | number;
+  slug?: string;
+};
+
 type Opportunity = {
   id: number | string;
   title: string;
   kind?: string;
   deadline?: string | null;
-  description?: string;
 };
 
-type FoundingMember = {
-  id: number | string;
-  name?: string;
-  role?: string;
-  title?: string;
-  institution?: string;
-  bio?: string;
-  biography?: string;
-  photo?: string | null;
-  image?: string | null;
-  active?: boolean;
-};
-
-const researchAreas = [
-  {
-    href: "/research-discovery",
-    title: "Research Discovery",
-    eyebrow: "Find evidence",
-    text: "Search research, authors, institutions, topics and evidence relevant to Rwanda and beyond.",
-  },
-  {
-    href: "/research-academy",
-    title: "Research Academy",
-    eyebrow: "Strengthen skills",
-    text: "Build the research methods, scientific writing, data and evidence skills your work needs.",
-  },
-  {
-    href: "/research-opportunities",
-    title: "Research Opportunities",
-    eyebrow: "Find opportunities",
-    text: "Explore grants, fellowships, scholarships, internships, mentorships and research calls.",
-  },
-  {
-    href: "/research-incubator",
-    title: "Research Incubator",
-    eyebrow: "Develop studies",
-    text: "Turn a research question into a structured project with a team, milestones and governance.",
-  },
-  {
-    href: "/collaboration",
-    title: "Collaboration Network",
-    eyebrow: "Work with people",
-    text: "Find mentors, collaborators, methods support and potential research partners.",
-  },
-  {
-    href: "/research-passport",
-    title: "Research Passport",
-    eyebrow: "Build your record",
-    text: "Keep a living record of your research skills, projects, publications and contributions.",
-  },
-];
-
-const principles = [
-  {
-    title: "Rwanda first",
-    text: "Built around the needs and realities of researchers working in Rwanda, while remaining open to regional and global collaboration.",
-  },
-  {
-    title: "Research before technology",
-    text: "Technology supports the research process. It does not replace scientific judgment, supervision, review or ethics.",
-  },
-  {
-    title: "Open research access",
-    text: "RSJH is designed to keep student-led health research accessible to readers and contributors.",
-  },
-  {
-    title: "Human responsibility",
-    text: "Researchers, supervisors, reviewers, editors and ethics authorities remain responsible for research decisions.",
-  },
-];
-
-function getArray(data: any): any[] {
+function listFrom(data: any): any[] {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.modules)) return data.modules;
+  if (Array.isArray(data?.courses)) return data.courses;
+  if (Array.isArray(data?.data)) return data.data;
   return [];
 }
 
 function formatDate(value?: string | null) {
   if (!value) return "";
+
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
@@ -120,189 +62,266 @@ function formatDate(value?: string | null) {
   });
 }
 
+const pathway = [
+  {
+    href: "/research-discovery",
+    label: "Discover",
+    title: "Find evidence before you build",
+    text: "Search research, authors, institutions, topics and evidence relevant to Rwanda and beyond.",
+  },
+  {
+    href: "/research-academy",
+    label: "Learn",
+    title: "Strengthen research skills",
+    text: "Build practical skills in research methods, scientific writing, evidence appraisal and data.",
+  },
+  {
+    href: "/research-opportunities",
+    label: "Opportunities",
+    title: "Find the next opportunity",
+    text: "Explore grants, scholarships, fellowships, internships, mentorships and research calls.",
+  },
+  {
+    href: "/research-incubator",
+    label: "Build",
+    title: "Develop the study",
+    text: "Turn a question into a structured research project with a team, milestones and governance.",
+  },
+  {
+    href: "/collaboration",
+    label: "Connect",
+    title: "Work with the right people",
+    text: "Find mentors, collaborators, methods support and potential research partners.",
+  },
+  {
+    href: "/research-passport",
+    label: "Record",
+    title: "Keep your research record",
+    text: "Build a living record of your research skills, projects, publications and contributions.",
+  },
+];
+
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [academy, setAcademy] = useState<AcademyItem[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [foundingTeam, setFoundingTeam] = useState<FoundingMember[]>([]);
 
-  const [articlesLoading, setArticlesLoading] = useState(true);
-  const [opportunitiesLoading, setOpportunitiesLoading] = useState(true);
-  const [teamLoading, setTeamLoading] = useState(true);
+  const [articlesState, setArticlesState] =
+    useState<"loading" | "ready" | "empty" | "error">("loading");
+
+  const [academyState, setAcademyState] =
+    useState<"loading" | "ready" | "empty" | "error">("loading");
+
+  const [opportunitiesState, setOpportunitiesState] =
+    useState<"loading" | "ready" | "empty" | "error">("loading");
 
   useEffect(() => {
-    let mounted = true;
+    let alive = true;
 
     async function loadArticles() {
       try {
-        const response = await api.get("/articles/");
-        const rows = getArray(response.data);
+        const response = await api.get(
+          "/articles/?status=published&is_published=true",
+          { timeout: 15000 }
+        );
 
-        const publicArticles = rows
+        const data = listFrom(response.data)
           .filter(
-            (article: Article) =>
-              article?.status === "published" &&
-              article?.is_published === true
+            (item: Article) =>
+              item.status === "published" &&
+              item.is_published === true
           )
           .slice(0, 3);
 
-        if (mounted) {
-          setArticles(publicArticles);
-        }
+        if (!alive) return;
+
+        setArticles(data);
+        setArticlesState(
+          data.length ? "ready" : "empty"
+        );
       } catch (error) {
         console.error("Homepage articles:", error);
 
-        if (mounted) {
-          setArticles([]);
-        }
-      } finally {
-        if (mounted) {
-          setArticlesLoading(false);
+        if (!alive) return;
+
+        setArticlesState("error");
+      }
+    }
+
+    async function loadAcademy() {
+      const endpoints = [
+        "/academy/modules/",
+        "/academy/",
+        "/academy/courses/",
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await api.get(
+            endpoint,
+            { timeout: 12000 }
+          );
+
+          const data = listFrom(response.data)
+            .filter(
+              (item: AcademyItem) =>
+                item?.title || item?.name
+            )
+            .slice(0, 6);
+
+          if (!alive) return;
+
+          if (data.length) {
+            setAcademy(data);
+            setAcademyState("ready");
+            return;
+          }
+        } catch {
+          // Try the next known Academy endpoint.
         }
       }
+
+      if (!alive) return;
+
+      setAcademyState("empty");
     }
 
     async function loadOpportunities() {
       try {
-        const response = await api.get("/research-opportunities/");
-        const rows = getArray(response.data);
+        const response = await api.get(
+          "/research-opportunities/",
+          { timeout: 15000 }
+        );
 
-        const today = new Date();
-
-        const active = rows
-          .filter((item: Opportunity) => {
-            if (!item.deadline) return true;
-
-            const deadline = new Date(item.deadline);
-
-            return (
-              Number.isNaN(deadline.getTime()) ||
-              deadline >= today
-            );
-          })
+        const data = listFrom(response.data)
+          .filter(
+            (item: Opportunity) =>
+              !item.deadline ||
+              new Date(item.deadline) >= new Date()
+          )
           .slice(0, 3);
 
-        if (mounted) {
-          setOpportunities(active);
-        }
+        if (!alive) return;
+
+        setOpportunities(data);
+        setOpportunitiesState(
+          data.length ? "ready" : "empty"
+        );
       } catch (error) {
-        console.error("Homepage opportunities:", error);
+        console.error(
+          "Homepage opportunities:",
+          error
+        );
 
-        if (mounted) {
-          setOpportunities([]);
-        }
-      } finally {
-        if (mounted) {
-          setOpportunitiesLoading(false);
-        }
-      }
-    }
+        if (!alive) return;
 
-    async function loadFoundingTeam() {
-      try {
-        const response = await api.get("/founding-members/");
-        const rows = getArray(response.data);
-
-        if (mounted) {
-          setFoundingTeam(
-            rows
-              .filter(
-                (member: FoundingMember) =>
-                  member?.active !== false
-              )
-              .slice(0, 8)
-          );
-        }
-      } catch (error) {
-        console.error("Homepage founding team:", error);
-
-        if (mounted) {
-          setFoundingTeam([]);
-        }
-      } finally {
-        if (mounted) {
-          setTeamLoading(false);
-        }
+        setOpportunitiesState("error");
       }
     }
 
     loadArticles();
+    loadAcademy();
     loadOpportunities();
-    loadFoundingTeam();
 
     return () => {
-      mounted = false;
+      alive = false;
     };
   }, []);
 
   return (
     <Layout>
-      <main className="bg-white text-slate-950">
+      <main className="overflow-x-hidden bg-white text-slate-950">
 
         {/* HERO */}
-        <section className="border-b border-slate-200 bg-slate-50">
-          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-            <div className="max-w-5xl">
-              <div className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">
+        <section className="relative isolate min-h-[620px] overflow-hidden text-white">
+
+          <img
+            src="/images/healthcare-rwanda.jpg"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+
+          <div className="absolute inset-0 bg-slate-950/65" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/30" />
+
+          <div className="relative mx-auto flex min-h-[620px] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
+            <div className="max-w-4xl">
+
+              <div className="text-xs font-black uppercase tracking-[0.22em] text-emerald-300">
                 Rwanda Student Research Ecosystem
               </div>
 
-              <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+              <h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">
                 Research that starts in Rwanda and connects to the world.
               </h1>
 
-              <p className="mt-6 max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
-                RSRE brings together researchers, students, mentors,
-                institutions and research opportunities in one connected
-                environment. Find evidence, develop a study, build the right
-                team, strengthen your methods and share your research.
+              <p className="mt-6 max-w-3xl text-base leading-8 text-slate-200 sm:text-lg">
+                RSRE brings together students, researchers, mentors,
+                institutions, opportunities and publication in one connected
+                research environment.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/research-discovery"
-                  className="rounded-xl bg-slate-950 px-6 py-3.5 text-center text-sm font-black text-white transition hover:bg-slate-800"
+                  className="rounded-xl bg-emerald-500 px-6 py-3.5 text-center text-sm font-black text-slate-950 hover:bg-emerald-400"
                 >
-                  Explore Research
+                  Explore research
+                </Link>
+
+                <Link
+                  href="/auth/register"
+                  className="rounded-xl border border-white/30 bg-white/10 px-6 py-3.5 text-center text-sm font-black text-white backdrop-blur hover:bg-white/15"
+                >
+                  Join RSRE
                 </Link>
 
                 <Link
                   href="/articles"
-                  className="rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-center text-sm font-black text-slate-800 transition hover:bg-slate-50"
+                  className="rounded-xl border border-white/30 px-6 py-3.5 text-center text-sm font-black text-white hover:bg-white/10"
                 >
                   Read RSJH Journal
                 </Link>
               </div>
-            </div>
 
-            <div className="mt-10 grid gap-4 border-t border-slate-200 pt-8 sm:grid-cols-3">
-              <div>
-                <div className="text-sm font-black">Find evidence</div>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Start with the question and the evidence behind it.
-                </p>
+              <div className="mt-10 grid gap-3 sm:grid-cols-3">
+                {[
+                  [
+                    "Find evidence",
+                    "Start with a question and the evidence behind it.",
+                  ],
+                  [
+                    "Develop research",
+                    "Move from an idea to a structured study.",
+                  ],
+                  [
+                    "Share results",
+                    "Publish, collaborate and strengthen research practice.",
+                  ],
+                ].map(([title, text]) => (
+                  <div
+                    key={title}
+                    className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur"
+                  >
+                    <div className="font-black">
+                      {title}
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-slate-300">
+                      {text}
+                    </p>
+                  </div>
+                ))}
               </div>
 
-              <div>
-                <div className="text-sm font-black">Develop research</div>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Move from an idea to a structured research project.
-                </p>
-              </div>
-
-              <div>
-                <div className="text-sm font-black">Share results</div>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Communicate research through publication and collaboration.
-                </p>
-              </div>
             </div>
           </div>
         </section>
 
         {/* RESEARCH JOURNEY */}
-        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-18">
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
               Research journey
             </div>
 
@@ -310,7 +329,7 @@ export default function Home() {
               One ecosystem for the stages of research.
             </h2>
 
-            <p className="mt-4 text-base leading-7 text-slate-600">
+            <p className="mt-4 text-base leading-8 text-slate-600">
               Start where you are. A student may need foundations. An
               experienced researcher may already have a question, a team or a
               manuscript. RSRE supports different starting points without
@@ -319,22 +338,22 @@ export default function Home() {
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {researchAreas.map((area) => (
+            {pathway.map((item) => (
               <Link
-                key={area.href}
-                href={area.href}
-                className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
+                key={item.href}
+                href={item.href}
+                className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg"
               >
                 <div className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
-                  {area.eyebrow}
+                  {item.label}
                 </div>
 
                 <h3 className="mt-3 text-xl font-black">
-                  {area.title}
+                  {item.title}
                 </h3>
 
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {area.text}
+                <p className="mt-2 text-sm leading-7 text-slate-600">
+                  {item.text}
                 </p>
 
                 <div className="mt-5 text-sm font-black text-emerald-700">
@@ -345,20 +364,21 @@ export default function Home() {
           </div>
         </section>
 
-        {/* RSJH JOURNAL */}
+        {/* JOURNAL */}
         <section className="border-y border-slate-200 bg-slate-50">
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-18">
-            <div className="flex flex-col gap-3 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
                   Rwanda Student Journal for Health
                 </div>
 
-                <h2 className="mt-2 text-3xl font-black sm:text-4xl">
+                <h2 className="mt-2 text-3xl font-black">
                   Latest published research
                 </h2>
 
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                <p className="mt-2 text-sm leading-6 text-slate-500">
                   Student-centred health research published through a
                   structured editorial and peer-review process.
                 </p>
@@ -372,236 +392,240 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="mt-6 grid gap-5 lg:grid-cols-3">
-              {articlesLoading ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 lg:col-span-3">
+            <div className="mt-7 grid gap-5 lg:grid-cols-3">
+
+              {articlesState === "loading" && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-7 text-sm text-slate-500 lg:col-span-3">
                   Loading published research...
                 </div>
-              ) : articles.length > 0 ? (
-                articles.map((article) => (
-                  <Link
-                    key={article.id}
-                    href={`/articles/${article.id}`}
-                    className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-emerald-300 hover:shadow-md"
-                  >
-                    <div className="text-xs font-black uppercase tracking-wider text-emerald-700">
-                      {article.specialty ||
-                        article.discipline ||
-                        "Health research"}
-                    </div>
+              )}
 
-                    <h3 className="mt-3 text-xl font-black leading-7 group-hover:text-emerald-700">
-                      {article.title}
-                    </h3>
+              {articlesState === "error" && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-7 text-sm text-amber-800 lg:col-span-3">
+                  The journal could not be loaded right now. You can still open
+                  the Journal page directly.
+                </div>
+              )}
 
-                    {article.abstract && (
-                      <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-600">
-                        {article.abstract}
-                      </p>
-                    )}
-
-                    <div className="mt-5 text-xs font-semibold leading-5 text-slate-400">
-                      {article.author?.full_name ||
-                        article.author?.username ||
-                        "RSJH author"}
-                      {article.year
-                        ? ` · ${article.year}`
-                        : ""}
-                      {article.published_date
-                        ? ` · ${formatDate(article.published_date)}`
-                        : ""}
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-500 lg:col-span-3">
+              {articlesState === "empty" && (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-7 text-sm text-slate-500 lg:col-span-3">
                   No published research is currently listed.
                 </div>
               )}
+
+              {articles.map((article) => (
+                <Link
+                  key={article.id}
+                  href={`/articles/${article.id}`}
+                  className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-emerald-300 hover:shadow-lg"
+                >
+                  <div className="text-xs font-black uppercase tracking-wider text-emerald-700">
+                    {article.specialty ||
+                      article.discipline ||
+                      "Health research"}
+                  </div>
+
+                  <h3 className="mt-3 text-xl font-black leading-7 group-hover:text-emerald-700">
+                    {article.title}
+                  </h3>
+
+                  {article.abstract && (
+                    <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-600">
+                      {article.abstract}
+                    </p>
+                  )}
+
+                  <div className="mt-5 text-xs text-slate-400">
+                    {article.author?.full_name ||
+                      article.author?.username ||
+                      "RSJH author"}
+
+                    {article.year
+                      ? ` · ${article.year}`
+                      : ""}
+
+                    {article.published_date
+                      ? ` · ${formatDate(
+                          article.published_date
+                        )}`
+                      : ""}
+                  </div>
+
+                  <div className="mt-5 text-sm font-black text-emerald-700">
+                    Read article →
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* OPPORTUNITIES */}
+        {/* ACADEMY */}
         <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                Opportunities
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+                Research Academy
               </div>
 
-              <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-                What could move your research forward?
+              <h2 className="mt-2 text-3xl font-black">
+                Build the skills your next study needs.
               </h2>
+
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                Academy participation is optional. Learn what you need,
+                continue from your existing level and apply the skills to real
+                research work.
+              </p>
             </div>
 
             <Link
-              href="/research-opportunities"
-              className="text-sm font-black text-amber-700"
+              href="/research-academy"
+              className="text-sm font-black text-blue-700"
             >
-              Browse all →
+              Open Academy →
             </Link>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {opportunitiesLoading ? (
-              <div className="rounded-2xl border border-slate-200 p-6 text-sm text-slate-500 md:col-span-3">
-                Loading opportunities...
+          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+            {academyState === "loading" && (
+              <div className="rounded-2xl border border-slate-200 p-7 text-sm text-slate-500 lg:col-span-3">
+                Loading Academy modules...
               </div>
-            ) : opportunities.length > 0 ? (
-              opportunities.map((item) => (
+            )}
+
+            {academyState === "empty" && (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-7 text-sm text-slate-500 lg:col-span-3">
+                No Academy modules are currently published.
+              </div>
+            )}
+
+            {academy.map((item) => (
+              <Link
+                key={item.id}
+                href={`/research-academy/module/${item.id}`}
+                className="rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-blue-300 hover:shadow-lg"
+              >
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
+                  {item.level
+                    ? `Level ${item.level}`
+                    : "Research Academy"}
+                </div>
+
+                <h3 className="mt-3 text-xl font-black">
+                  {item.title ||
+                    item.name}
+                </h3>
+
+                <p className="mt-2 line-clamp-3 text-sm leading-7 text-slate-600">
+                  {item.summary ||
+                    item.description ||
+                    "Research Academy learning module."}
+                </p>
+
+                <div className="mt-5 text-sm font-black text-blue-700">
+                  View module →
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* OPPORTUNITIES */}
+        <section className="border-y border-slate-200 bg-slate-50">
+          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+                  Opportunities
+                </div>
+
+                <h2 className="mt-2 text-3xl font-black">
+                  What could move your research forward?
+                </h2>
+              </div>
+
+              <Link
+                href="/research-opportunities"
+                className="text-sm font-black text-amber-700"
+              >
+                Browse all →
+              </Link>
+            </div>
+
+            <div className="mt-7 grid gap-4 md:grid-cols-3">
+
+              {opportunitiesState === "loading" && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-7 text-sm text-slate-500 md:col-span-3">
+                  Loading opportunities...
+                </div>
+              )}
+
+              {opportunitiesState === "empty" && (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-7 text-sm text-slate-500 md:col-span-3">
+                  No active opportunities are currently listed.
+                </div>
+              )}
+
+              {opportunitiesState === "error" && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-7 text-sm text-amber-800 md:col-span-3">
+                  Opportunities are temporarily unavailable.
+                </div>
+              )}
+
+              {opportunities.map((item) => (
                 <Link
                   key={item.id}
                   href="/research-opportunities"
-                  className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-amber-300 hover:bg-amber-50/30"
+                  className="rounded-2xl border border-slate-200 bg-white p-5 hover:border-amber-300 hover:shadow-md"
                 >
                   <div className="text-xs font-black uppercase tracking-wider text-amber-700">
-                    {item.kind || "Research opportunity"}
+                    {item.kind ||
+                      "Research opportunity"}
                   </div>
 
                   <h3 className="mt-2 font-black">
                     {item.title}
                   </h3>
 
-                  {item.description && (
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
-                      {item.description}
+                  {item.deadline && (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Deadline:{" "}
+                      {formatDate(
+                        item.deadline
+                      )}
                     </p>
                   )}
-
-                  {item.deadline && (
-                    <div className="mt-4 text-xs font-bold text-slate-400">
-                      Deadline: {formatDate(item.deadline)}
-                    </div>
-                  )}
                 </Link>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500 md:col-span-3">
-                No active opportunities are currently listed.
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* FOUNDING TEAM */}
-        <section className="border-y border-slate-200 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <div className="max-w-3xl">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-                Founding team
-              </div>
-
-              <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-                The people building RSRE
-              </h2>
-
-              <p className="mt-3 text-sm leading-7 text-slate-600">
-                RSRE is being developed around research capacity, collaboration
-                and publication in Rwanda, with an ambition for wider regional
-                and international collaboration.
-              </p>
-            </div>
-
-            <div className="mt-8">
-              {teamLoading ? (
-                <div className="rounded-2xl bg-slate-50 p-6 text-sm text-slate-500">
-                  Loading founding team...
-                </div>
-              ) : foundingTeam.length > 0 ? (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {foundingTeam.map((member) => {
-                    const image =
-                      member.photo ||
-                      member.image ||
-                      null;
-
-                    const name =
-                      member.name ||
-                      "RSRE founding member";
-
-                    return (
-                      <article
-                        key={member.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-6"
-                      >
-                        <div className="flex items-start gap-4">
-                          {image ? (
-                            <img
-                              src={image}
-                              alt={name}
-                              className="h-16 w-16 shrink-0 rounded-2xl object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-xl font-black text-white">
-                              {name
-                                .split(" ")
-                                .slice(0, 2)
-                                .map((part) => part[0])
-                                .join("")}
-                            </div>
-                          )}
-
-                          <div className="min-w-0">
-                            <h3 className="font-black text-slate-950">
-                              {name}
-                            </h3>
-
-                            {(member.role ||
-                              member.title) && (
-                              <div className="mt-1 text-sm font-bold text-emerald-700">
-                                {member.role ||
-                                  member.title}
-                              </div>
-                            )}
-
-                            {member.institution && (
-                              <div className="mt-1 text-xs text-slate-500">
-                                {member.institution}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {(member.bio ||
-                          member.biography) && (
-                          <p className="mt-4 text-sm leading-6 text-slate-600">
-                            {member.bio ||
-                              member.biography}
-                          </p>
-                        )}
-                      </article>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-sm text-slate-500">
-                  Founding team profiles will appear here as they are
-                  published.
-                </div>
-              )}
+              ))}
             </div>
           </div>
         </section>
 
-        {/* RWANDA */}
+        {/* RWANDA + GRANT ALIGNMENT */}
         <section className="bg-slate-950 text-white">
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-18">
-            <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <div className="grid gap-10 lg:grid-cols-[1.1fr_.9fr]">
+
               <div>
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
-                  Built in Rwanda
+                  Built for Rwanda
                 </div>
 
-                <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-                  Research rooted in Rwanda, connected to regional and global
-                  knowledge.
+                <h2 className="mt-3 max-w-3xl text-3xl font-black leading-tight sm:text-4xl">
+                  Strengthening the people, skills and connections behind better research.
                 </h2>
 
-                <p className="mt-5 max-w-2xl leading-8 text-slate-300">
-                  RSRE helps researchers move from finding evidence to
-                  developing studies, building teams, strengthening research
-                  practice and communicating results.
+                <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300">
+                  RSRE is designed around practical research capacity:
+                  learning, evidence discovery, project development,
+                  collaboration, opportunity access and publication. The
+                  platform is meant to support real research work in Rwanda
+                  while making stronger connections possible across the region
+                  and internationally.
                 </p>
 
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -622,60 +646,43 @@ export default function Home() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                {principles.map((principle) => (
+                {[
+                  [
+                    "Academy optional",
+                    "Researchers can enter at the level that matches their current skills.",
+                  ],
+                  [
+                    "Research first",
+                    "The platform supports researchers rather than replacing scientific judgment.",
+                  ],
+                  [
+                    "Open access mindset",
+                    "RSJH is designed to keep student research accessible and visible.",
+                  ],
+                  [
+                    "Human oversight",
+                    "Researchers, reviewers, editors and ethics authorities remain responsible.",
+                  ],
+                ].map(([title, text]) => (
                   <div
-                    key={principle.title}
+                    key={title}
                     className="rounded-2xl border border-white/10 bg-white/5 p-5"
                   >
                     <h3 className="font-black">
-                      {principle.title}
+                      {title}
                     </h3>
 
                     <p className="mt-2 text-sm leading-6 text-slate-300">
-                      {principle.text}
+                      {text}
                     </p>
                   </div>
                 ))}
               </div>
+
             </div>
           </div>
         </section>
 
-        {/* FINAL CTA */}
-        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-7 sm:p-10">
-            <div className="max-w-3xl">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">
-                Start with the work
-              </div>
-
-              <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-                Have a research question, study idea or research goal?
-              </h2>
-
-              <p className="mt-3 text-base leading-7 text-slate-700">
-                Find the evidence, meet the right people, develop the study
-                and keep a record of the work as it grows.
-              </p>
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/research-discovery"
-                  className="rounded-xl bg-slate-950 px-5 py-3 text-center text-sm font-black text-white"
-                >
-                  Start with Research Discovery
-                </Link>
-
-                <Link
-                  href="/auth/register"
-                  className="rounded-xl border border-emerald-300 bg-white px-5 py-3 text-center text-sm font-black text-emerald-900"
-                >
-                  Create an account
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
     </Layout>
   );
