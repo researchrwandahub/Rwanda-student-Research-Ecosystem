@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import Link from "next/link";
 import Layout from "../components/Layout";
 import api from "../utils/api";
@@ -56,9 +56,7 @@ export default function Articles() {
           data = response.data?.results || response.data || [];
         }
 
-        data = Array.isArray(data)
-          ? data.filter((article) => article?.is_published || article?.status === "published")
-          : [];
+        data = Array.isArray(data) ? data : [];
 
         setArticles(data);
       } catch (error) {
@@ -279,7 +277,7 @@ export default function Articles() {
             <div className="light-panel rounded-2xl p-8 text-center">
 
               <div className="text-4xl mb-3">
-                🔎
+                ðŸ”Ž
               </div>
 
               <h2 className="text-xl font-bold">
@@ -528,7 +526,7 @@ export default function Articles() {
                   disabled:cursor-not-allowed
                 "
               >
-                ← Previous
+                â† Previous
               </button>
 
               {/* PAGE NUMBERS */}
@@ -586,7 +584,7 @@ export default function Articles() {
                   disabled:cursor-not-allowed
                 "
               >
-                Next →
+                Next â†’
               </button>
 
             </div>
@@ -597,3 +595,4 @@ export default function Articles() {
     </Layout>
   );
 }
+

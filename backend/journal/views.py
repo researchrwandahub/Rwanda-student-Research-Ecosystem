@@ -2933,7 +2933,380 @@ class ResearchPassportView(APIView):
         ser.save(verification_version=p.verification_version + 1)
         return Response(self._snapshot(request.user, p))
 
+class PublicResearchPassportView(APIView):
+    permission_classes = [AllowAny]
 
+    def get(self, request, username):
+        from academy.models import LevelCertificate, ModuleCertificate, PathwayCertificate
+
+        user = User.objects.filter(
+            username=username,
+            is_active=True,
+        ).first()
+
+        if not user:
+            return Response(
+                {"detail": "Researcher not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        passport = ResearchPassport.objects.filter(
+            user=user,
+            visibility="public",
+        ).first()
+
+        if not passport:
+            return Response(
+                {"detail": "This research passport is not publicly available."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        projects = ResearchProject.objects.filter(
+            models.Q(owner=user)
+            | models.Q(members__user=user)
+        ).distinct()
+
+        published = Article.objects.filter(
+            author=user,
+            is_published=True,
+            status="published",
+        )
+
+        reviews = Review.objects.filter(reviewer=user)
+
+        certificates = list(
+            ModuleCertificate.objects.filter(
+                user=user,
+                status="valid",
+            ).select_related("module")
+        ) + list(
+            LevelCertificate.objects.filter(
+                user=user,
+                status="valid",
+            ).select_related("level")
+        ) + list(
+            PathwayCertificate.objects.filter(
+                user=user,
+                status="valid",
+            ).select_related("pathway")
+        )
+
+        return Response(
+            {
+                "researcher": {
+                    "id": user.id,
+                    "username": user.username,
+                    "full_name": user.get_full_name() or user.username,
+                    "email": "",
+                    "institution": getattr(user, "institution", ""),
+                    "university": getattr(user, "university", ""),
+                    "department": getattr(user, "department", ""),
+                    "discipline": getattr(user, "discipline", ""),
+                    "academic_stage": getattr(user, "academic_stage", ""),
+                    "research_field": getattr(user, "research_field", ""),
+                    "orcid": getattr(user, "orcid", ""),
+                    "biography": getattr(user, "biography", ""),
+                    "research_interests": getattr(
+                        user,
+                        "research_interests",
+                        "",
+                    ),
+                    "profile_picture": (
+                        user.profile_picture.url
+                        if getattr(user, "profile_picture", None)
+                        else None
+                    ),
+                },
+                "passport": {
+                    "headline": passport.headline,
+                    "career_goal": passport.career_goal,
+                    "skills": passport.skills,
+                    "methods": passport.methods,
+                    "interests": passport.interests,
+                    "collaborations": passport.collaborations,
+                    "competencies": passport.competencies or [],
+                    "visibility": passport.visibility,
+                    "updated_at": passport.updated_at,
+                },
+                "metrics": {
+                    "projects": projects.count(),
+                    "publications": published.count(),
+                    "peer_reviews": reviews.count(),
+                    "valid_certificates": len(certificates),
+                },
+                "publications": [
+                    {
+                        "id": article.id,
+                        "title": article.title,
+                        "abstract": article.abstract,
+                        "discipline": article.discipline,
+                        "specialty": article.specialty,
+                        "published_date": article.published_date,
+                        "year": article.year,
+                        "volume": article.volume,
+                        "issue": article.issue,
+                        "publication_number": article.publication_number,
+                        "doi": article.doi,
+                        "citation_text": article.citation_text,
+                    }
+                    for article in published.order_by(
+                        "-published_date",
+                        "-id",
+                    )[:10]
+                ],
+                "projects": [
+                    {
+                        "id": project.id,
+                        "title": project.title,
+                        "status": project.status,
+                        "discipline": project.discipline,
+                        "study_type": project.study_type,
+                    }
+                    for project in projects.order_by(
+                        "-updated_at",
+                    )[:10]
+                ],
+                "credentials": [
+                    {
+                        "certificate_id": certificate.certificate_id,
+                        "type": "module",
+                        "title": certificate.module.title,
+                        "issued_at": certificate.issued_at,
+                    }
+                    for certificate in certificates
+                    if isinstance(certificate, ModuleCertificate)
+                ]
+                + [
+                    {
+                        "certificate_id": certificate.certificate_id,
+                        "type": "level",
+                        "title": certificate.level.name,
+                        "issued_at": certificate.issued_at,
+                    }
+                    for certificate in certificates
+                    if isinstance(certificate, LevelCertificate)
+                ]
+                + [
+                    {
+                        "certificate_id": certificate.certificate_id,
+                        "type": "pathway",
+                        "title": certificate.pathway.name,
+                        "issued_at": certificate.issued_at,
+                    }
+                    for certificate in certificates
+                    if isinstance(certificate, PathwayCertificate)
+                ],
+            }
+        )
+class PublicResearchPassportView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, username):
+        from academy.models import (
+            ModuleCertificate,
+            LevelCertificate,
+            PathwayCertificate,
+        )
+
+        user = User.objects.filter(
+            username=username,
+            is_active=True,
+        ).first()
+
+        if not user:
+            return Response(
+                {"detail": "Researcher not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        passport = ResearchPassport.objects.filter(
+            user=user,
+            visibility="public",
+        ).first()
+
+        if not passport:
+            return Response(
+                {
+                    "detail": (
+                        "This research passport is not publicly available."
+                    )
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        projects = ResearchProject.objects.filter(
+            models.Q(owner=user)
+            | models.Q(members__user=user)
+        ).distinct()
+
+        publications = Article.objects.filter(
+            author=user,
+            status="published",
+            is_published=True,
+        ).order_by("-published_date", "-id")
+
+        reviews = Review.objects.filter(
+            reviewer=user
+        )
+
+        module_certificates = list(
+            ModuleCertificate.objects.filter(
+                user=user,
+                status="valid",
+            ).select_related("module")
+        )
+
+        level_certificates = list(
+            LevelCertificate.objects.filter(
+                user=user,
+                status="valid",
+            ).select_related("level")
+        )
+
+        pathway_certificates = list(
+            PathwayCertificate.objects.filter(
+                user=user,
+                status="valid",
+            ).select_related("pathway")
+        )
+
+        certificates = (
+            [
+                {
+                    "certificate_id": certificate.certificate_id,
+                    "type": "module",
+                    "title": certificate.module.title,
+                    "issued_at": certificate.issued_at,
+                }
+                for certificate in module_certificates
+            ]
+            + [
+                {
+                    "certificate_id": certificate.certificate_id,
+                    "type": "level",
+                    "title": certificate.level.name,
+                    "issued_at": certificate.issued_at,
+                }
+                for certificate in level_certificates
+            ]
+            + [
+                {
+                    "certificate_id": certificate.certificate_id,
+                    "type": "pathway",
+                    "title": certificate.pathway.name,
+                    "issued_at": certificate.issued_at,
+                }
+                for certificate in pathway_certificates
+            ]
+        )
+
+        profile_picture = None
+
+        try:
+            if getattr(user, "profile_picture", None):
+                profile_picture = request.build_absolute_uri(
+                    user.profile_picture.url
+                )
+        except Exception:
+            profile_picture = None
+
+        return Response(
+            {
+                "researcher": {
+                    "id": user.id,
+                    "username": user.username,
+                    "full_name": (
+                        user.get_full_name()
+                        or user.username
+                    ),
+                    "institution": getattr(
+                        user, "institution", ""
+                    ),
+                    "university": getattr(
+                        user, "university", ""
+                    ),
+                    "department": getattr(
+                        user, "department", ""
+                    ),
+                    "discipline": getattr(
+                        user, "discipline", ""
+                    ),
+                    "academic_stage": getattr(
+                        user, "academic_stage", ""
+                    ),
+                    "research_field": getattr(
+                        user, "research_field", ""
+                    ),
+                    "orcid": getattr(
+                        user, "orcid", ""
+                    ),
+                    "biography": getattr(
+                        user, "biography", ""
+                    ),
+                    "research_interests": getattr(
+                        user,
+                        "research_interests",
+                        "",
+                    ),
+                    "profile_picture": profile_picture,
+                },
+                "passport": {
+                    "headline": passport.headline,
+                    "career_goal": passport.career_goal,
+                    "skills": passport.skills,
+                    "methods": passport.methods,
+                    "interests": passport.interests,
+                    "collaborations": passport.collaborations,
+                    "competencies": (
+                        passport.competencies or []
+                    ),
+                    "visibility": passport.visibility,
+                    "updated_at": passport.updated_at,
+                },
+                "metrics": {
+                    "projects": projects.count(),
+                    "publications": publications.count(),
+                    "peer_reviews": reviews.count(),
+                    "valid_certificates": len(
+                        certificates
+                    ),
+                },
+                "publications": [
+                    {
+                        "id": article.id,
+                        "title": article.title,
+                        "abstract": article.abstract,
+                        "discipline": article.discipline,
+                        "specialty": article.specialty,
+                        "published_date": article.published_date,
+                        "year": article.year,
+                        "volume": article.volume,
+                        "issue": article.issue,
+                        "publication_number": (
+                            article.publication_number
+                        ),
+                        "doi": article.doi,
+                        "citation_text": (
+                            article.citation_text
+                        ),
+                    }
+                    for article in publications[:10]
+                ],
+                "projects": [
+                    {
+                        "id": project.id,
+                        "title": project.title,
+                        "status": project.status,
+                        "discipline": project.discipline,
+                        "study_type": project.study_type,
+                    }
+                    for project in projects.order_by(
+                        "-updated_at"
+                    )[:10]
+                ],
+                "credentials": certificates,
+            }
+        )
 class PassportEvidenceView(APIView):
     permission_classes = [IsAuthenticated]
 

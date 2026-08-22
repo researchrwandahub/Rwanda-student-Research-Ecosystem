@@ -20,6 +20,7 @@ from .views import (
     BookmarkViewSet,
     NotificationViewSet,
     AuthorDashboardView,
+    PublicResearchPassportView,
     send_invitation, publication_settings_view,
 
     # Analytics

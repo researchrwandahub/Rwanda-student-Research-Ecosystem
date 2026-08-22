@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 
 const configuredBase =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -28,7 +28,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("rmsjToken");
+      const token = localStorage.getItem("rmsjToken") || localStorage.getItem("access") || localStorage.getItem("token");
 
       if (token) {
         config.headers = config.headers || {};
@@ -53,8 +53,10 @@ async function refreshAccessToken() {
     return null;
   }
 
-  const refreshToken =
-    localStorage.getItem("rmsjRefresh");
+  const token =
+  localStorage.getItem("rmsjToken") ||
+  localStorage.getItem("access") ||
+  localStorage.getItem("token");
 
   if (!refreshToken) {
     return null;
@@ -260,3 +262,4 @@ export async function fetchArticle(id) {
 
 
 export default api;
+
