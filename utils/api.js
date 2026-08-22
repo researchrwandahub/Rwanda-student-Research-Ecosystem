@@ -162,14 +162,30 @@ api.interceptors.response.use(
 export function absoluteUrl(path) {
   if (!path) return "";
 
-  if (/^https?:\/\//i.test(path)) {
-    return path;
+  const value = String(path);
+
+  // Django development responses may contain localhost/127.0.0.1
+  // media URLs. Rewrite those to the actual API origin so public
+  // images work correctly on Render and other deployed environments.
+  if (
+    /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/i.test(value)
+  ) {
+    const rewritten = value.replace(
+      /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/i,
+      API_ORIGIN
+    );
+
+    return rewritten;
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
   }
 
   return `${API_ORIGIN}${
-    path.startsWith("/")
-      ? path
-      : `/${path}`
+    value.startsWith("/")
+      ? value
+      : `/${value}`
   }`;
 }
 
@@ -192,3 +208,4 @@ export async function fetchArticle(id) {
 }
 
 export default api;
+
