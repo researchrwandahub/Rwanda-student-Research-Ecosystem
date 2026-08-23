@@ -128,32 +128,41 @@ if USE_SQLITE:
     }
 
 else:
-    _database_url = os.environ.get("DATABASE_URL", "").strip()
-    if _database_url:
-        from urllib.parse import urlparse, unquote
-        _db = urlparse(_database_url)
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.postgresql",
-                "NAME": _db.path.lstrip("/"),
-                "USER": unquote(_db.username or ""),
-                "PASSWORD": unquote(_db.password or ""),
-                "HOST": _db.hostname,
-                "PORT": str(_db.port or 5432),
-                "OPTIONS": {"sslmode": "require"},
-            }
-        }
-    else:
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.postgresql",
-                "NAME": os.environ.get("POSTGRES_DB", "rmsj"),
-                "USER": os.environ.get("POSTGRES_USER", "postgres"),
-                "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
-                "HOST": os.environ.get("DB_HOST", "localhost"),
-                "PORT": os.environ.get("DB_PORT", "5432"),
-                "OPTIONS": {"sslmode": os.environ.get("PGSSLMODE", "require")},
-            }
+
+    DATABASES = {
+        "default": {
+            "ENGINE":
+                "django.db.backends.postgresql",
+
+            "NAME":
+                os.environ.get(
+                    "POSTGRES_DB",
+                    "rmsj"
+                ),
+
+            "USER":
+                os.environ.get(
+                    "POSTGRES_USER",
+                    "postgres"
+                ),
+
+            "PASSWORD":
+                os.environ.get(
+                    "POSTGRES_PASSWORD",
+                    ""
+                ),
+
+            "HOST":
+                os.environ.get(
+                    "DB_HOST",
+                    "localhost"
+                ),
+
+            "PORT":
+                os.environ.get(
+                    "DB_PORT",
+                    "5432"
+                ),
         }
     }
 
@@ -304,7 +313,6 @@ FRONTEND_URL=os.environ.get("FRONTEND_URL","http://localhost:3000")
 EMAIL_BACKEND=os.environ.get("EMAIL_BACKEND","django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST=os.environ.get("EMAIL_HOST",""); EMAIL_PORT=int(os.environ.get("EMAIL_PORT","587")); EMAIL_HOST_USER=os.environ.get("EMAIL_HOST_USER",""); EMAIL_HOST_PASSWORD=os.environ.get("EMAIL_HOST_PASSWORD",""); EMAIL_USE_TLS=os.environ.get("EMAIL_USE_TLS","True")=="True"
 DEFAULT_FROM_EMAIL=os.environ.get("DEFAULT_FROM_EMAIL","RSRE <researchrwandahub@gmail.com>")
-
 
 
 
