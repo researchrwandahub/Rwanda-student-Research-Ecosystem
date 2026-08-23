@@ -1,8 +1,7 @@
 ﻿import axios from "axios";
 
 const configuredBase =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8000/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://rsre-backend.onrender.com/api";
 
 const API_BASE = configuredBase
   .replace(/\/$/, "")
@@ -260,3 +259,4 @@ export async function fetchArticle(id) {
 
 
 export default api;
+
