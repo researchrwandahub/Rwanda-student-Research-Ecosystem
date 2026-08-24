@@ -158,6 +158,15 @@ class Article(models.Model):
     supervisor_name = models.CharField(max_length=255, blank=True)
     student_initiated = models.BooleanField(default=True)
 
+    # Optional link connecting a published/submitted manuscript
+    # to the RSRE Research Incubator project that produced it.
+    research_project = models.ForeignKey(
+        "ResearchProject",
+        related_name="manuscripts",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     abstract = models.TextField()
 

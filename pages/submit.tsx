@@ -24,10 +24,51 @@ export default function Submit() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [contributions, setContributions] = useState<Record<string, string[]>>({});
   const [pdf, setPdf] = useState<File | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   function change(name: string, value: string) { setForm((current) => ({ ...current, [name]: value })); }
+
+  useEffect(() => {
+    let active = true;
+
+    api.get("/research-projects/")
+      .then((response) => {
+        if (!active) return;
+
+        const data =
+          response.data?.results ||
+          response.data ||
+          [];
+
+        setProjects(Array.isArray(data) ? data : []);
+
+        const projectFromUrl =
+          typeof router.query.project === "string"
+            ? router.query.project
+            : "";
+
+        if (projectFromUrl) {
+          const exists = data.some(
+            (project: any) =>
+              String(project.id) === projectFromUrl
+          );
+
+          if (exists) {
+            setSelectedProject(projectFromUrl);
+          }
+        }
+      })
+      .catch(() => {
+        if (active) setProjects([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router.query.project]);
 
   useEffect(() => {
     let active = true;
@@ -86,6 +127,11 @@ export default function Submit() {
       Object.entries(form).forEach(([key, value]) => {
         if (key !== "co_authors") data.append(key, value);
       });
+
+      if (selectedProject) {
+        data.append("research_project", selectedProject);
+      }
+
       data.append("pdf", pdf);
       const response = await api.post("/articles/", data, { headers: { "Content-Type": "multipart/form-data" } });
       const typedUsernames = form.co_authors.split(",").map((v) => v.trim()).filter(Boolean);
@@ -197,6 +243,35 @@ export default function Submit() {
                 </Field>
               </div>
               <Field label="Supervisor / mentor (optional)"><input value={form.supervisor_name} onChange={(e) => change("supervisor_name", e.target.value)} className="field" /></Field>
+
+              <div className="md:col-span-2">
+                <Field label="Research project (optional)">
+                  <select
+                    value={selectedProject}
+                    onChange={(e) => setSelectedProject(e.target.value)}
+                    className="field"
+                  >
+                    <option value="">
+                      Submit without linking a project
+                    </option>
+
+                    {projects.map((project) => (
+                      <option
+                        key={project.id}
+                        value={project.id}
+                      >
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+
+                  <p className="mt-2 text-xs text-slate-500">
+                    Linking a project connects this manuscript to your RSRE
+                    Research Incubator record and strengthens your Research
+                    Passport evidence trail.
+                  </p>
+                </Field>
+              </div>
               <Field label="Study year"><input type="number" value={form.year} onChange={(e) => change("year", e.target.value)} className="field" /></Field>
             </div>
           </section>
