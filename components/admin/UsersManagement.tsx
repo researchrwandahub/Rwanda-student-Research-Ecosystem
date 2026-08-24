@@ -1,4 +1,4 @@
-export default function UsersManagement(){
+﻿export default function UsersManagement(){
 
   return (
 
@@ -9,7 +9,7 @@ export default function UsersManagement(){
       </h2>
 
       <p className="mt-3 text-gray-600">
-        Administrator can manage RSJH users here.
+        Administrators can manage RSRE users and their platform roles here.
       </p>
 
     </div>

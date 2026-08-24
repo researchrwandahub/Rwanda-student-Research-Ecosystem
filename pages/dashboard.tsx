@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Award, Bell, BookOpen, FlaskConical, FolderOpen, Lightbulb, Search, ShieldCheck, Sparkles, Users, Zap } from 'lucide-react'
 import Layout from '../components/Layout'
@@ -32,7 +32,7 @@ export default function DashboardPage() {
     api.get('/rsre/dashboard/').then((r) => setData(r.data)).catch(() => setData(null)).finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <Layout><main className="rsre-page py-12"><div className="rsre-panel p-10 text-slate-500">Loading your research workspace…</div></main></Layout>
+  if (loading) return <Layout><main className="rsre-page py-12"><div className="rsre-panel p-10 text-slate-500">Loading your research workspaceâ€¦</div></main></Layout>
   if (!data) return <Layout><main className="rsre-page py-12"><div className="rsre-panel p-10"><h1 className="text-2xl font-black">Your dashboard could not load.</h1><p className="mt-2 text-slate-500">Please refresh or sign in again.</p></div></main></Layout>
 
   const activity = data.activity || { research_projects: 0, opportunities_active: 0, passport_evidence: 0, articles: 0 }
@@ -53,8 +53,8 @@ export default function DashboardPage() {
       <section className="overflow-hidden rounded-[2rem] bg-slate-950 p-7 text-white shadow-[0_25px_70px_rgba(15,23,42,.2)] md:p-9">
         <div className="grid gap-8 lg:grid-cols-[1fr_340px] lg:items-end">
           <div>
-            <div className="rsre-kicker text-emerald-300">Your RSRE workspace · {roleLabel}</div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">Welcome back, {firstName}. <span aria-hidden>👋</span></h1>
+            <div className="rsre-kicker text-emerald-300">Your RSRE workspace Â· {roleLabel}</div>
+            <h1 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">Welcome back, {firstName}. <span aria-hidden>ðŸ‘‹</span></h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300 md:text-lg">One place for your learning, research activity, opportunities, collaborations, evidence and publications.</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href={nextAction.href} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-emerald-400">{nextAction.label}<ArrowRight size={16}/></Link>
@@ -102,3 +102,4 @@ export default function DashboardPage() {
     </main>
   </Layout>
 }
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import ApplicationShell from '../components/ApplicationShell'
 import api from '../utils/api'
 
@@ -98,10 +98,10 @@ export default function Discovery() {
             />
             <div className="flex gap-2">
               <button disabled={loading} className="flex-1 rounded-2xl bg-emerald-400 px-7 py-4 font-black text-slate-950 disabled:opacity-60">
-                {loading ? 'Searching…' : 'Search research'}
+                {loading ? 'Searchingâ€¦' : 'Search research'}
               </button>
               <button type="button" onClick={() => { const next=!saved; setSaved(next); if(next) localStorage.setItem('rsre_discovery_saved_search', query.trim()); else localStorage.removeItem('rsre_discovery_saved_search') }} className="rounded-2xl border border-slate-700 bg-slate-900 px-5 py-4 text-sm font-black text-white">
-                {saved ? 'Saved ✓' : 'Save search'}
+                {saved ? 'Saved âœ“' : 'Save search'}
               </button>
             </div>
           </form>
@@ -109,7 +109,7 @@ export default function Discovery() {
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <select value={source} onChange={e => setSource(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm">
               <option value="all">All sources</option>
-              <option value="rsjh">RSJH only</option>
+              <option value="rsjh">RSJH Journal</option>
               <option value="openalex">OpenAlex</option>
               <option value="crossref">Crossref</option>
             </select>
@@ -130,7 +130,7 @@ export default function Discovery() {
         {submitted && !loading && (
           <section className="mt-7 grid gap-4 md:grid-cols-3">
             <InsightCard title="What exists" value={total.toString()} detail="records in this discovery run" />
-            <InsightCard title="Local signal" value={localResults.length.toString()} detail="RSJH records matching your query" />
+            <InsightCard title="Local signal" value={localResults.length.toString()} detail="RSJH Journal records matching your query" />
             <InsightCard title="Next move" value="Explore gaps" detail="Use the evidence to refine a research question" />
           </section>
         )}
@@ -139,7 +139,7 @@ export default function Discovery() {
           <section className="mt-7 flex flex-col justify-between gap-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center">
             <div>
               <div className="text-xs font-black uppercase tracking-wider text-slate-400">Search results</div>
-              <h3 className="mt-1 text-xl font-black text-slate-950">“{submitted}”</h3>
+              <h3 className="mt-1 text-xl font-black text-slate-950">â€œ{submitted}â€</h3>
             </div>
             <div className="text-sm font-bold text-slate-500">{total} records found</div>
           </section>
@@ -147,7 +147,7 @@ export default function Discovery() {
 
         {submitted && localResults.length > 0 && (
           <section className="mt-6">
-            <SectionHeading title="RSJH research" subtitle="Published research from the Rwanda Student Journal for Health." />
+            <SectionHeading title="RSJH Journal research" subtitle="Published research from the Rwanda Student Journal for Health." />
             <div className="grid gap-4">
               {localResults.map(item => <ResearchCard key={`rsjh-${item.id}`} item={item} />)}
             </div>
@@ -165,7 +165,7 @@ export default function Discovery() {
 
         {submitted && !loading && total === 0 && (
           <section className="mt-8 rounded-3xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
-            <div className="text-4xl">🔎</div>
+            <div className="text-4xl">ðŸ”Ž</div>
             <h3 className="mt-3 text-xl font-black">No matching records</h3>
             <p className="mt-2 text-sm text-slate-500">Try broader keywords, remove the year filter, or switch back to all sources.</p>
           </section>
@@ -250,10 +250,11 @@ function ResearchCard({ item }: { item: RecordItem }) {
         {item.doi && <span className="max-w-full truncate rounded-lg bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600">DOI: {item.doi}</span>}
         {link !== '#' && (
           <a href={link} target={external ? '_blank' : undefined} rel={external ? 'noreferrer' : undefined} className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white">
-            {external ? 'Open source ↗' : 'Open RSJH article'}
+            {external ? 'Open source â†—' : 'Open Journal article'}
           </a>
         )}
       </div>
     </article>
   )
 }
+

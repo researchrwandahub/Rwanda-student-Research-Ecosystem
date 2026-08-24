@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
 import api from "../../utils/api";
 
@@ -150,7 +150,7 @@ export default function UsersManagement() {
                     text-blue-900
                 ">
 
-                    RSJH Users
+                    RSRE Users
 
                 </h1>
 
@@ -161,7 +161,7 @@ export default function UsersManagement() {
                     mt-2
                 ">
 
-                    Manage RSJH users and assign controlled roles, including Reviewer, Editor and Editor-in-Chief.
+                    Manage RSRE users and assign controlled publication roles, including Reviewer, Editor and Editor-in-Chief.
 
                 </p>
 

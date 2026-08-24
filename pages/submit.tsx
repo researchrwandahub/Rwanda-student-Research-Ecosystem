@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+﻿import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import DashboardLayout from "../components/DashboardLayout";
 import api from "../utils/api";
@@ -58,8 +58,8 @@ export default function Submit() {
 
   const CONTRIBUTION_ROLES = [
     "Conceptualization", "Methodology", "Software", "Validation", "Formal analysis",
-    "Investigation", "Resources", "Data curation", "Writing – original draft",
-    "Writing – review & editing", "Visualization", "Supervision", "Project administration", "Funding acquisition"
+    "Investigation", "Resources", "Data curation", "Writing â€“ original draft",
+    "Writing â€“ review & editing", "Visualization", "Supervision", "Project administration", "Funding acquisition"
   ];
 
   function addCoAuthor(user: any) {
@@ -105,7 +105,7 @@ export default function Submit() {
     <DashboardLayout role="author" title="Start Your RSJH Research Journey">
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="rounded-3xl bg-slate-950 p-7 text-white">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-300">Step 1 · Build the journey</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-300">Step 1 Â· Build the journey</p>
           <h1 className="mt-2 text-3xl font-bold">Start an RSJH manuscript</h1>
           <p className="mt-2 max-w-3xl text-slate-300">Your submission will move through editor screening, peer review, feedback, revision and editorial decision. The dashboard keeps the journey visible.</p><div className="mt-5 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100"><strong>RSJH is free.</strong> There is no student submission fee, peer-review fee, or publication charge.</div>
         </div>
@@ -129,15 +129,15 @@ export default function Submit() {
                         className="field bg-white pl-10"
                         placeholder="Search RSJH students and researchers..."
                       />
-                      <span className="pointer-events-none absolute left-3 top-3 text-slate-400">🔍</span>
+                      <span className="pointer-events-none absolute left-3 top-3 text-slate-400">ðŸ”</span>
                     </div>
 
                     {(coAuthorQuery.trim() || loadingUsers) && (
                       <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
                         {loadingUsers ? (
-                          <div className="p-4 text-sm text-slate-500">Loading RSJH users...</div>
+                          <div className="p-4 text-sm text-slate-500">Loading registered RSRE users...</div>
                         ) : availableCoAuthors.length === 0 ? (
-                          <div className="p-4 text-sm text-slate-500">No matching registered RSJH users found.</div>
+                          <div className="p-4 text-sm text-slate-500">No matching registered RSRE users found.</div>
                         ) : (
                           availableCoAuthors.map((user) => (
                             <button
@@ -156,7 +156,7 @@ export default function Submit() {
                                 )}
                                 <div className="min-w-0">
                                   <p className="truncate font-semibold text-slate-900">{user.full_name || user.username}</p>
-                                  <p className="truncate text-sm text-slate-500">{user.university || user.institution || "RSJH member"}{user.discipline ? ` · ${user.discipline}` : ""}</p>
+                                  <p className="truncate text-sm text-slate-500">{user.university || user.institution || "RSJH member"}{user.discipline ? ` Â· ${user.discipline}` : ""}</p>
                                 </div>
                               </div>
                               <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">+ Add</span>
@@ -174,7 +174,7 @@ export default function Submit() {
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex items-center gap-3">
                                 {user.profile_picture ? <img src={user.profile_picture} alt="" className="h-11 w-11 rounded-full object-cover" /> : <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 font-black text-emerald-700">{(user.full_name || user.username || "R").charAt(0).toUpperCase()}</div>}
-                                <div><p className="font-bold text-slate-900">{user.full_name || user.username}</p><p className="text-xs text-slate-500">{user.university || user.institution || "RSJH member"}{user.discipline ? ` · ${user.discipline}` : ""}</p></div>
+                                <div><p className="font-bold text-slate-900">{user.full_name || user.username}</p><p className="text-xs text-slate-500">{user.university || user.institution || "RSJH member"}{user.discipline ? ` Â· ${user.discipline}` : ""}</p></div>
                               </div>
                               <button type="button" onClick={() => removeCoAuthor(user.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700">Remove</button>
                             </div>
@@ -192,7 +192,7 @@ export default function Submit() {
                       </div>
                     )}
 
-                    <p className="mt-3 text-xs text-slate-500">Select registered RSJH users. Their account identity will be preserved in the manuscript record.</p>
+                    <p className="mt-3 text-xs text-slate-500">Select registered RSRE users. Their account identity will be preserved in the manuscript record.</p>
                   </div>
                 </Field>
               </div>
@@ -232,3 +232,4 @@ export default function Submit() {
 
 function Field({ label, required, children }: any) { return <label className="block"><span className="mb-2 block text-sm font-semibold text-slate-700">{label}{required ? " *" : ""}</span>{children}</label>; }
 function SelectField({ label, value, options, onChange }: any) { return <Field label={label}><select value={value} onChange={(e) => onChange(e.target.value)} className="field">{options.map((o: string[]) => <option key={o[0]} value={o[0]}>{o[1]}</option>)}</select></Field>; }
+

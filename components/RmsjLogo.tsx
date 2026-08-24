@@ -1,14 +1,22 @@
-interface RmsjLogoProps {
-  className?: string
+﻿interface RmsjLogoProps {
+  className?: string;
+  size?: number;
 }
 
-export default function RmsjLogo({ className = '' }: RmsjLogoProps) {
+export default function RmsjLogo({
+  className = "",
+  size = 48,
+}: RmsjLogoProps) {
   return (
     <span
-      aria-hidden="true"
-      className={`grid h-12 w-12 shrink-0 place-items-center rounded-3xl bg-slate-950 text-sm font-semibold tracking-[0.12em] text-cyan-200 shadow-soft ${className}`}
+      className={`inline-grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}
+      style={{ width: size, height: size }}
     >
-      RSJH
+      <img
+        src="/logo.png"
+        alt="RSRE"
+        className="h-full w-full object-contain"
+      />
     </span>
-  )
+  );
 }

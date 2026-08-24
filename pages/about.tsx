@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import Link from "next/link";
 import Layout from "../components/Layout";
 import api, { absoluteUrl } from "../utils/api";
@@ -18,10 +18,10 @@ const partnerNeeds = [
 ];
 
 const milestones = [
-  ["2026 · Foundation", "RSJH was shaped around a student-first model that connects research learning, development, peer review and publication."],
-  ["2026 · Platform build", "The digital platform expanded beyond manuscript submission into research discovery, opportunities, passports and an incubator."],
-  ["2026 · Editorial workflow", "Author, reviewer and editorial workflows were brought into one platform so a manuscript can move through a traceable publication process."],
-  ["2026 · Responsible AI", "MedTech AI was designed as a research assistant layer while keeping editorial judgement and scientific accountability human-led."],
+  ["2026 Â· Foundation", "RSRE was shaped around a research-first model that connects research learning, development, peer review and publication."],
+  ["2026 Â· Platform build", "The digital platform expanded beyond manuscript submission into research discovery, opportunities, passports and an incubator."],
+  ["2026 Â· Editorial workflow", "Author, reviewer and editorial workflows were brought into one platform so a manuscript can move through a traceable publication process."],
+  ["2026 Â· Responsible AI", "MedTech AI was designed as a research assistant layer while keeping editorial judgement and scientific accountability human-led."],
 ];
 
 function initials(name:string){ return name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase() || "RS"; }
@@ -45,7 +45,7 @@ export default function About(){
           <p className="rsjh-eyebrow text-emerald-300">ABOUT RSRE</p>
           <h1 className="mt-4 max-w-4xl text-4xl md:text-6xl font-black tracking-tight">A student research community built around the full journey.</h1>
           <p className="mt-6 max-w-3xl text-lg md:text-xl leading-8 text-slate-300">From the first research question to peer review, publication and a lasting scholarly record.</p>
-          <div className="mt-8 flex flex-wrap gap-3"><Link href="/articles" className="rsjh-button-green">Explore published work →</Link><Link href="/research-hub" className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/10">Explore the Research Hub</Link></div>
+          <div className="mt-8 flex flex-wrap gap-3"><Link href="/articles" className="rsjh-button-green">Explore published work â†’</Link><Link href="/research-hub" className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/10">Explore the Research Hub</Link></div>
         </div>
       </section>
 
@@ -53,7 +53,7 @@ export default function About(){
         <div className="rsjh-page grid gap-8 lg:grid-cols-[1.2fr_.8fr] items-start">
           <div className="rsjh-card p-8 md:p-10">
             <p className="rsjh-eyebrow text-emerald-700">OUR FOUNDING STORY</p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-black">Why Rwanda Student Journal for Health was built</h2>
+            <h2 className="mt-3 text-3xl md:text-4xl font-black">Why RSRE was built</h2>
             <div className="mt-6 space-y-5 text-slate-600 leading-8">
               <p>RSRE was created around a practical problem: health students can be surrounded by research questions but still struggle to find a clear route from an idea to credible evidence, collaboration and publication.</p>
               <p>The platform therefore treats publication as one part of a longer research journey. Students can develop ideas, discover opportunities, build a research passport, collaborate, submit manuscripts, receive peer review, respond to feedback and preserve a visible scholarly record.</p>
@@ -109,9 +109,10 @@ export default function About(){
           <h2 className="mt-3 text-3xl md:text-4xl font-black">A partner ecosystem, not a logo wall.</h2>
           <p className="mt-4 max-w-3xl text-slate-600 leading-7">Partner records shown here are managed by authorised administrators. Logos, descriptions and official websites come from the partner records rather than hard-coded demo cards.</p>
           <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">{partnerNeeds.map(([title,desc],i)=><div key={title} className="rsjh-card p-6"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 font-black text-emerald-700">0{i+1}</div><h3 className="mt-5 text-xl font-black">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{desc}</p></div>)}</div>
-          {partners.length>0&&<div className="mt-10"><h3 className="text-2xl font-black">Current partners and supporters</h3><div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{partners.map(p=><a href={p.website||undefined} target={p.website?'_blank':undefined} rel={p.website?'noreferrer':undefined} key={p.id} className="rsjh-card p-5 hover:-translate-y-0.5 transition"><div className="h-20 flex items-center justify-center rounded-2xl bg-slate-50">{p.logo?<img src={absoluteUrl(p.logo)} alt={p.name} className="max-h-16 max-w-full object-contain" onError={(e)=>{e.currentTarget.style.display="none";}}/>:<span className="text-2xl font-black text-slate-300">{initials(p.name)}</span>}</div><h4 className="mt-4 font-black">{p.name}</h4>{p.country&&<p className="mt-1 text-xs uppercase tracking-wide text-emerald-700">{p.country}</p>}{p.description&&<p className="mt-2 text-sm text-slate-600">{p.description}</p>}{p.website&&<span className="mt-3 inline-block text-sm font-bold text-emerald-700">Official website →</span>}</a>)}</div></div>}
+          {partners.length>0&&<div className="mt-10"><h3 className="text-2xl font-black">Current partners and supporters</h3><div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{partners.map(p=><a href={p.website||undefined} target={p.website?'_blank':undefined} rel={p.website?'noreferrer':undefined} key={p.id} className="rsjh-card p-5 hover:-translate-y-0.5 transition"><div className="h-20 flex items-center justify-center rounded-2xl bg-slate-50">{p.logo?<img src={absoluteUrl(p.logo)} alt={p.name} className="max-h-16 max-w-full object-contain" onError={(e)=>{e.currentTarget.style.display="none";}}/>:<span className="text-2xl font-black text-slate-300">{initials(p.name)}</span>}</div><h4 className="mt-4 font-black">{p.name}</h4>{p.country&&<p className="mt-1 text-xs uppercase tracking-wide text-emerald-700">{p.country}</p>}{p.description&&<p className="mt-2 text-sm text-slate-600">{p.description}</p>}{p.website&&<span className="mt-3 inline-block text-sm font-bold text-emerald-700">Official website â†’</span>}</a>)}</div></div>}
         </div>
       </section>
     </main>
   </Layout>
 }
+

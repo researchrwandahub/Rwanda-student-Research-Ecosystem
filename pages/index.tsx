@@ -281,7 +281,7 @@ export default function Home() {
                   href="/articles"
                   className="rounded-xl border border-white/30 px-6 py-3.5 text-center text-sm font-black text-white hover:bg-white/10"
                 >
-                  Read RSJH Journal
+                  Read the Journal
                 </Link>
               </div>
 
@@ -687,3 +687,4 @@ export default function Home() {
     </Layout>
   );
 }
+

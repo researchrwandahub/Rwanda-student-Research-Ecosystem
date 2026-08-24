@@ -1,4 +1,4 @@
-export const SITE_CONTACT = {
+﻿export const SITE_CONTACT = {
   editorialEmail: "researchrwandahub@gmail.com",
   phone: "+250792447121",
   address: "Rwanda, East Africa",
@@ -9,8 +9,9 @@ export const SITE_CONTACT = {
 };
 
 export const SITE = {
-  name: "Rwanda Student Research Ecosystem",
+  name: "Research Support & Research Ecosystem",
   shortName: "RSRE",
   publisher: "MedTech Rwanda Ltd",
-  tagline: "Research. Connect. Build. Publish. Impact.",
+  tagline: "Learn. Discover. Build. Connect. Publish.",
 };
+
