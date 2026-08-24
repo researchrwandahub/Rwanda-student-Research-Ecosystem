@@ -1,21 +1,64 @@
-﻿import axios from 'axios'
+﻿import axios from "axios";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const configuredBase =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://rsre-backend.onrender.com/api";
+
+const API_BASE = configuredBase
+  .replace(/\/$/, "")
+  .endsWith("/api")
+  ? configuredBase.replace(/\/$/, "")
+  : `${configuredBase.replace(/\/$/, "")}/api`;
+
+export const API_ORIGIN = API_BASE.replace(/\/api$/, "");
 
 const api = axios.create({
   baseURL: API_BASE,
-  withCredentials: true,
-})
+  headers: {
+    Accept: "application/json",
+  },
+});
 
-export async function fetchLatestArticles(limit=10){
-  const res = await api.get(`/articles/?state=published&ordering=-published_at&page_size=${limit}`)
-  return res.data
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("rmsjToken");
+
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  return config;
+});
+
+export function absoluteUrl(path) {
+  if (!path) return "";
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  return `${API_ORIGIN}${
+    path.startsWith("/") ? path : `/${path}`
+  }`;
 }
 
-export async function fetchArticle(id){
-  const res = await api.get(`/articles/${id}/`)
-  return res.data
+export async function fetchLatestArticles(limit = 10) {
+  const response = await api.get(
+    `/articles/?page_size=${limit}`
+  );
+
+  const data = response.data;
+
+  return Array.isArray(data)
+    ? data
+    : data.results || [];
 }
 
-export default api
+export async function fetchArticle(id) {
+  const response = await api.get(`/articles/${id}/`);
+  return response.data;
+}
 
+export default api;
