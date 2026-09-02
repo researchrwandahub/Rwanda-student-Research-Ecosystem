@@ -24,8 +24,13 @@ backend/rsre_production_data.dump
 frontend/
 frontend_backup_V38/
 v44work/
+/v45/
+tools/
 RSRE/
 RSRE/RSRE-GITHUB/
+
+/ACADEMY_V41_UPGRADE/
+/ACADEMY_V42_UPGRADE/
 
 # Backups, temporary files, and local tooling data
 *.backup
@@ -33,6 +38,8 @@ RSRE/RSRE-GITHUB/
 *.before-*
 backend/ACADEMY_V41_UPGRADE/
 backend/RSRE_V44_SUPPORT/
+backend/academy_materials/
+backend/rsre_data.json
 backend/**/views.py.v*-backup
 backend/**/urls.py.v*-backup
 backend/**/admin.py.v*-backup
@@ -41,3 +48,23 @@ RSRE_GIT_STRUCTURE_COMPARISON.txt
 .vscode/
 .copilot/
 agentSessionData/
+
+# Legacy root-level frontend duplicates
+ArticleCard.js
+Footer.js
+Header.js
+Layout.js
+Layout.tsx
+_app.js
+api.js
+dashboard.js
+globals.css
+index.js
+login.js
+register.js
+research-analytics.js
+
+# Legacy local patch scripts
+add_gift_support.py
+apply_v35.py
+modify.py
