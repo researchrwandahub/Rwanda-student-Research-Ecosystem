@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Bell, BookOpen, Home, LayoutDashboard, Menu, Search, Sparkles, X } from 'lucide-react'
+import { Bell, BookOpen, Compass, FlaskConical, Home, LayoutDashboard, Menu, Search, X } from 'lucide-react'
 import api, { absoluteUrl } from '../utils/api'
 
 const primaryNav = [
-  ['/', 'Home'],
-  ['/articles', 'RSJH Journal'],
-  ['/research-academy', 'Academy'],
   ['/research-discovery', 'Discovery'],
-  ['/research-opportunities', 'Opportunities'],
+  ['/research-academy', 'Academy'],
   ['/research-incubator', 'Incubator'],
+  ['/research-opportunities', 'Opportunities'],
   ['/research-passport', 'Passport'],
-  ['/about', 'About'],
+  ['/collaboration', 'Community'],
 ]
 
 const workspaceNav = [
@@ -20,7 +18,8 @@ const workspaceNav = [
   ['/ethics-compliance','Ethics & Compliance'],
   ['/events-training','Events & Training'],
   ['/research-analytics','Research Analytics'],
-  ['/medtech-ai','MedTech AI'],
+  ['/articles','RSJH Journal'],
+  ['/about','About RSRE'],
 ]
 
 export default function Header() {
@@ -56,7 +55,7 @@ export default function Header() {
   return <header className="border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
     <div className="rsre-topbar hidden sm:block">
       <div className="rsre-page flex min-h-[34px] items-center justify-between gap-4 text-xs font-bold">
-        <span className="inline-flex items-center gap-2 text-emerald-100"><Sparkles size={13}/> Research learning, discovery, collaboration and publication</span>
+        <span className="inline-flex items-center gap-2 text-emerald-100">Research learning, discovery, collaboration and publication</span>
         <Link href="/support-rsre" className="text-emerald-200 hover:text-white">Support RSRE</Link>
       </div>
     </div>

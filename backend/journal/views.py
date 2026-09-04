@@ -2607,12 +2607,13 @@ class ResearchDiscoveryView(APIView):
     Sources:
     - OpenAlex: broad scholarly metadata, OA and citation signals.
     - Crossref: DOI and publisher metadata.
-    - RSJH: locally published student research.
+    - PubMed: NCBI's public biomedical literature index, via Entrez E-utilities.
+    - RSJH: locally published research in the RSRE journal component.
 
     Query parameters:
       q       search phrase (required, >= 2 chars)
       rows    max external records per source (1-20)
-      source  all|openalex|crossref|rsjh
+      source  all|pubmed|openalex|europepmc|crossref|rsjh
       year    exact publication year
       oa      true|false (external OA flag)
     """
@@ -2633,7 +2634,7 @@ class ResearchDiscoveryView(APIView):
             rows = 10
 
         source_filter = (request.query_params.get("source") or "all").lower()
-        if source_filter not in {"all", "openalex", "crossref", "rsjh"}:
+        if source_filter not in {"all", "pubmed", "openalex", "europepmc", "crossref", "rsjh"}:
             source_filter = "all"
 
         try:
@@ -2645,14 +2646,53 @@ class ResearchDiscoveryView(APIView):
         oa_filter = True if oa_param == "true" else False if oa_param == "false" else None
 
         results = []
-        source_status = {"OpenAlex": "not_requested", "Crossref": "not_requested", "RSJH": "not_requested"}
+        source_status = {"PubMed": "not_requested", "OpenAlex": "not_requested", "Europe PMC": "not_requested", "Crossref": "not_requested", "Local RSRE": "not_requested"}
 
         def include_external(item):
             if year_filter and item.get("year") != year_filter:
                 return False
-            if oa_filter is not None and bool(item.get("open_access")) != oa_filter:
+            # A missing OA flag means "unknown", not "closed access".
+            if oa_filter is not None and item.get("open_access") is not oa_filter:
                 return False
             return True
+
+        # PubMed is queried only through NCBI Entrez E-utilities.  The two light
+        # requests deliberately avoid scraping and keep a small, bounded result set.
+        if source_filter in {"all", "pubmed"}:
+            source_status["PubMed"] = "ok"
+            try:
+                common = {"db": "pubmed", "term": query, "retmode": "json", "retmax": rows}
+                search_request = Request(
+                    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?" + urlencode(common),
+                    headers={"User-Agent": "RSRE/1.1 research discovery (contact: researchrwandahub@gmail.com)"},
+                )
+                with urlopen(search_request, timeout=8) as response:
+                    ids = json.loads(response.read().decode("utf-8")).get("esearchresult", {}).get("idlist", [])
+                if ids:
+                    summary_request = Request(
+                        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?" + urlencode({"db": "pubmed", "id": ",".join(ids), "retmode": "json"}),
+                        headers={"User-Agent": "RSRE/1.1 research discovery (contact: researchrwandahub@gmail.com)"},
+                    )
+                    with urlopen(summary_request, timeout=8) as response:
+                        summaries = json.loads(response.read().decode("utf-8")).get("result", {})
+                    for pmid in ids:
+                        item = summaries.get(str(pmid), {})
+                        article_ids = {str(x.get("idtype", "")).lower(): x.get("value") for x in item.get("articleids", [])}
+                        record = {
+                            "source": "PubMed", "id": str(pmid), "pmid": str(pmid),
+                            "title": item.get("title") or "Untitled work",
+                            "authors": [author.get("name") for author in item.get("authors", []) if author.get("name")][:6],
+                            "year": int(item["pubdate"][:4]) if str(item.get("pubdate", ""))[:4].isdigit() else None,
+                            "journal": item.get("fulljournalname") or item.get("source"),
+                            "doi": article_ids.get("doi"),
+                            "url": "https://pubmed.ncbi.nlm.nih.gov/{}/".format(pmid),
+                            "open_access": True if article_ids.get("pmc") else None,
+                            "citations": 0,
+                        }
+                        if include_external(record):
+                            results.append(record)
+            except (URLError, HTTPError, TimeoutError, ValueError, json.JSONDecodeError, OSError):
+                source_status["PubMed"] = "unavailable"
 
         # OpenAlex
         if source_filter in {"all", "openalex"}:
@@ -2693,6 +2733,40 @@ class ResearchDiscoveryView(APIView):
             except Exception:
                 source_status["OpenAlex"] = "unavailable"
 
+        # Europe PMC is a health-focused public index and does not require an API key.
+        if source_filter in {"all", "europepmc"}:
+            source_status["Europe PMC"] = "ok"
+            try:
+                params = urlencode({"query": query, "pageSize": rows, "format": "json"})
+                req = Request(
+                    "https://www.ebi.ac.uk/europepmc/webservices/rest/search?" + params,
+                    headers={"User-Agent": "RSRE/1.1 research discovery"},
+                )
+                with urlopen(req, timeout=8) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                for item in data.get("resultList", {}).get("result", []):
+                    doi = item.get("doi")
+                    pmcid = item.get("pmcid")
+                    record = {
+                        "source": "Europe PMC",
+                        "id": pmcid or item.get("id"),
+                        "title": item.get("title") or "Untitled work",
+                        "authors": [item["authorString"]] if item.get("authorString") else [],
+                        "year": int(item["pubYear"]) if str(item.get("pubYear", "")).isdigit() else None,
+                        "journal": item.get("journalTitle"),
+                        "doi": doi,
+                        "url": (
+                            f"https://europepmc.org/articles/{pmcid}"
+                            if pmcid else (f"https://doi.org/{doi}" if doi else None)
+                        ),
+                        "open_access": True if str(item.get("isOpenAccess", "")).upper() == "Y" else False if item.get("isOpenAccess") else None,
+                        "citations": item.get("citedByCount", 0) or 0,
+                    }
+                    if include_external(record):
+                        results.append(record)
+            except Exception:
+                source_status["Europe PMC"] = "unavailable"
+
         # Crossref
         if source_filter in {"all", "crossref"}:
             source_status["Crossref"] = "ok"
@@ -2728,7 +2802,8 @@ class ResearchDiscoveryView(APIView):
                         "journal": (item.get("container-title") or [None])[0],
                         "doi": doi,
                         "url": item.get("URL") or (f"https://doi.org/{doi}" if doi else None),
-                        "open_access": False,
+                        # Crossref does not reliably expose OA status for every work.
+                        "open_access": None,
                         "citations": item.get("is-referenced-by-count", 0),
                     }
                     if include_external(record):
@@ -2736,11 +2811,11 @@ class ResearchDiscoveryView(APIView):
             except Exception:
                 source_status["Crossref"] = "unavailable"
 
-        # RSJH local research is always useful to Rwandan researchers and does
+        # Local RSRE research is always useful to Rwandan researchers and does
         # not depend on external services.
         local_results = []
         if source_filter in {"all", "rsjh"}:
-            source_status["RSJH"] = "ok"
+            source_status["Local RSRE"] = "ok"
             try:
                 local_qs = Article.objects.filter(
                     is_published=True
@@ -2751,8 +2826,8 @@ class ResearchDiscoveryView(APIView):
                     Q(specialty__icontains=query)
                 ).select_related("author").order_by("-published_date")[:20]
                 for article in local_qs:
-                    local_results.append({
-                        "source": "RSJH",
+                    record = {
+                        "source": "Local RSRE",
                         "id": article.id,
                         "title": article.title,
                         "authors": [
@@ -2768,9 +2843,11 @@ class ResearchDiscoveryView(APIView):
                         "open_access": True,
                         "citations": 0,
                         "specialty": article.specialty,
-                    })
+                    }
+                    if (not year_filter or record["year"] == year_filter) and (oa_filter is None or record["open_access"] is oa_filter):
+                        local_results.append(record)
             except Exception:
-                source_status["RSJH"] = "unavailable"
+                source_status["Local RSRE"] = "unavailable"
 
         # Deduplicate external records by DOI, then title.
         unique = []
@@ -2789,7 +2866,7 @@ class ResearchDiscoveryView(APIView):
             "count": len(unique),
             "results": unique[:30],
             "local_results": local_results,
-            "sources": ["OpenAlex", "Crossref", "RSJH"],
+            "sources": ["PubMed", "OpenAlex", "Europe PMC", "Crossref", "Local RSRE"],
             "source_status": source_status,
             "filters": {"source": source_filter, "year": year_filter, "oa": oa_filter},
         })

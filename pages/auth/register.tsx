@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import api from "../../utils/api";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -21,6 +21,15 @@ export default function Register() {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const role = typeof router.query.role === "string" ? router.query.role : "";
+    const invitation = typeof router.query.invitation === "string" ? router.query.invitation : "";
+    if (["reviewer", "editor", "editor_in_chief"].includes(role) || invitation) {
+      setForm(current => ({ ...current, role: ["reviewer", "editor", "editor_in_chief"].includes(role) ? role : current.role, invitation_code: invitation || current.invitation_code }));
+    }
+  }, [router.isReady, router.query.role, router.query.invitation]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -66,10 +75,11 @@ export default function Register() {
         invitation_code: form.invitation_code || undefined,
         university: form.university, department: form.department,
         discipline: form.discipline, academic_stage: form.academic_stage,
+        orcid: form.orcid, biography: form.biography,
       };
 
       await api.post("/auth/register/", registerData);
-      setMessage("Registration successful. Check your email to verify your RSJH account before signing in.");
+      setMessage("Registration successful. Check your email to verify your RSRE account before signing in.");
       await router.push(`/auth/login?registered=1&role=${encodeURIComponent(form.role)}`);
     } catch (error: any) {
       const errors = error.response?.data;
@@ -92,7 +102,7 @@ export default function Register() {
           <div className="mx-auto max-w-4xl rounded-[2rem] bg-white/95 backdrop-blur shadow-2xl p-7 md:p-10">
             <div className="flex items-center gap-4 border-b border-slate-200 pb-6">
               <div className="rounded-2xl bg-white p-2 ring-1 ring-slate-200"><img src="/logo.png" alt="RSJH" className="h-14 w-14 object-contain" /></div>
-              <div><p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">RSJH MEMBERSHIP</p><h1 className="text-3xl font-black text-slate-950">Create your RSJH account</h1><p className="mt-1 text-slate-500">Join a research ecosystem built around students, peer review and publication.</p></div>
+              <div><p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">RSRE MEMBERSHIP</p><h1 className="text-3xl font-black text-slate-950">Create your RSRE account</h1><p className="mt-1 text-slate-500">Join a research ecosystem for learning, evidence discovery, projects and publication.</p></div>
             </div>
 
             <form onSubmit={handleSubmit} className="grid gap-6 mt-7">
@@ -147,7 +157,7 @@ export default function Register() {
                 <label className="grid gap-2 text-sm font-semibold text-slate-800">Short biography<textarea name="biography" value={form.biography} onChange={handleChange} rows={3} className="w-full rounded-xl border px-4 py-3 font-normal" /></label>
               </div>
 
-              <button disabled={loading} className="rsjh-button-green w-full py-3 disabled:opacity-50">{loading ? "Creating account..." : "Create RSJH account"}</button>
+              <button disabled={loading} className="rsjh-button-green w-full py-3 disabled:opacity-50">{loading ? "Creating account..." : "Create RSRE account"}</button>
             </form>
 
             {message && <div className="mt-6 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700 break-words">{message}</div>}

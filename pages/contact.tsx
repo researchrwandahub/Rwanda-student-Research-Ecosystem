@@ -49,7 +49,7 @@ export default function ContactPage() {
           <div className="rsjh-page mt-6">
             <div className="rounded-3xl bg-emerald-50 border border-emerald-100 p-7">
               <h2 className="text-2xl font-black text-slate-950">Published by {SITE.publisher}</h2>
-              <p className="mt-3 max-w-3xl text-slate-700 leading-7">MedTech Rwanda supports the technology, platform operations and publisher-side infrastructure. Scientific scope, peer review and publication decisions remain with RSJH editorial leadership.</p>
+              <p className="mt-3 max-w-3xl text-slate-700 leading-7">RSRE provides the platform for research learning, discovery and publication workflows. Scientific scope, peer review and publication decisions remain with RSJH editorial leadership.</p>
             </div>
           </div>
         </section>

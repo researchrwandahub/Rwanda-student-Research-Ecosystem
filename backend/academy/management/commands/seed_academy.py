@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 from django.utils.text import slugify
 from academy.models import Level, SpecialistPathway, Module, Lesson, Quiz, Question, Choice, CertificateSettings, Badge, DiagnosticAssessment, PracticeLab, CaseStudy
 
@@ -237,7 +238,8 @@ class Command(BaseCommand):
                     "level": level, "pathway": None, "title": level.name,
                     "description": level.description, "learning_outcomes": [level.description],
                     "estimated_hours": round(sum((m.estimated_minutes for m in level.modules.filter(active=True)), 0) / 60, 2),
-                    "pass_mark": level.required_pass_mark, "active": True, "order": level.number,
+                    "pass_mark": level.required_pass_mark, "active": True, "status": "published",
+                    "published_at": timezone.now(), "archived_at": None, "order": level.number,
                 },
             )
             for module in level.modules.filter(active=True, pathway__isnull=True).order_by("order"):
@@ -251,7 +253,8 @@ class Command(BaseCommand):
                     "level": None, "pathway": pathway, "title": pathway.name, "description": pathway.description,
                     "learning_outcomes": [pathway.description],
                     "estimated_hours": round(sum((m.estimated_minutes for m in pathway.modules.filter(active=True)), 0) / 60, 2),
-                    "pass_mark": pathway.required_pass_mark, "active": True, "order": 100 + pathway.id,
+                    "pass_mark": pathway.required_pass_mark, "active": True, "status": "published",
+                    "published_at": timezone.now(), "archived_at": None, "order": 100 + pathway.id,
                 },
             )
             for module in pathway.modules.filter(active=True).order_by("order"):

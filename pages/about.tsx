@@ -21,7 +21,7 @@ const milestones = [
   ["2026 · Foundation", "RSJH was shaped around a student-first model that connects research learning, development, peer review and publication."],
   ["2026 · Platform build", "The digital platform expanded beyond manuscript submission into research discovery, opportunities, passports and an incubator."],
   ["2026 · Editorial workflow", "Author, reviewer and editorial workflows were brought into one platform so a manuscript can move through a traceable publication process."],
-  ["2026 · Responsible AI", "MedTech AI was designed as a research assistant layer while keeping editorial judgement and scientific accountability human-led."],
+  ["2026 · Research safeguards", "The platform keeps scientific accountability, research ethics and editorial judgement with people and appropriate review processes."],
 ];
 
 function initials(name:string){ return name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase() || "RS"; }
@@ -43,8 +43,8 @@ export default function About(){
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_#10b981_0,_transparent_35%),radial-gradient(circle_at_bottom_left,_#2563eb_0,_transparent_35%)]" />
         <div className="rsjh-page relative py-20 md:py-28">
           <p className="rsjh-eyebrow text-emerald-300">ABOUT RSRE</p>
-          <h1 className="mt-4 max-w-4xl text-4xl md:text-6xl font-black tracking-tight">A student research community built around the full journey.</h1>
-          <p className="mt-6 max-w-3xl text-lg md:text-xl leading-8 text-slate-300">From the first research question to peer review, publication and a lasting scholarly record.</p>
+          <h1 className="mt-4 max-w-4xl text-4xl md:text-6xl font-black tracking-tight">Practical support for the full research journey.</h1>
+          <p className="mt-6 max-w-3xl text-lg md:text-xl leading-8 text-slate-300">RSRE helps students and researchers learn, find evidence, develop projects, connect and move knowledge toward action in Rwanda.</p>
           <div className="mt-8 flex flex-wrap gap-3"><Link href="/articles" className="rsjh-button-green">Explore published work →</Link><Link href="/research-hub" className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/10">Explore the Research Hub</Link></div>
         </div>
       </section>
@@ -58,7 +58,7 @@ export default function About(){
               <p>RSRE was created around a practical problem: health students can be surrounded by research questions but still struggle to find a clear route from an idea to credible evidence, collaboration and publication.</p>
               <p>The platform therefore treats publication as one part of a longer research journey. Students can develop ideas, discover opportunities, build a research passport, collaborate, submit manuscripts, receive peer review, respond to feedback and preserve a visible scholarly record.</p>
               <p>The journal is student-centred without lowering scientific standards. Editorial decisions, peer review, research ethics and publication remain accountable to human editorial leadership.</p>
-              <p>MedTech Rwanda provides the digital infrastructure behind the platform. RSRE connects distinct research services across Rwanda, with RSJH serving as the scholarly publication pillar.</p>
+              <p>RSRE connects distinct research services with Rwanda in mind. RSJH remains the scholarly publication component within the wider ecosystem.</p>
             </div>
           </div>
           <div className="rounded-3xl bg-emerald-950 p-8 text-white shadow-xl">
@@ -98,8 +98,8 @@ export default function About(){
 
       <section className="bg-slate-950 py-16 text-white">
         <div className="rsjh-page grid gap-10 lg:grid-cols-[.9fr_1.1fr] items-center">
-          <div><p className="rsjh-eyebrow text-emerald-300">PUBLISHER</p><h2 className="mt-3 text-3xl md:text-4xl font-black">Built by MedTech Rwanda. Governed by editorial leadership.</h2><p className="mt-5 text-slate-300 leading-8">MedTech Rwanda provides technology and publisher-side infrastructure. Scientific scope, reviewer selection and publication decisions remain under journal editorial governance.</p></div>
-          <div className="rounded-3xl bg-white/5 p-7 ring-1 ring-white/10"><div className="grid gap-4 sm:grid-cols-2"><div><p className="text-xs uppercase tracking-widest text-slate-400">Technology</p><p className="mt-2 font-black">MedTech Rwanda Ltd</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Editorial office</p><p className="mt-2 font-black">researchrwandahub@gmail.com</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Location</p><p className="mt-2 font-black">Huye, Rwanda</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Contact</p><p className="mt-2 font-black">+250 792 447 121</p></div></div></div>
+          <div><p className="rsjh-eyebrow text-emerald-300">TRUST & PURPOSE</p><h2 className="mt-3 text-3xl md:text-4xl font-black">A practical ecosystem, not an official institutional system.</h2><p className="mt-5 text-slate-300 leading-8">RSRE supports research learning, discovery, projects and publication workflows. Scientific scope, reviewer selection, ethics decisions and publication decisions remain subject to the responsible people and processes involved.</p></div>
+          <div className="rounded-3xl bg-white/5 p-7 ring-1 ring-white/10"><div className="grid gap-4 sm:grid-cols-2"><div><p className="text-xs uppercase tracking-widest text-slate-400">Platform</p><p className="mt-2 font-black">Research Support and Research Ecosystem</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Editorial office</p><p className="mt-2 font-black">researchrwandahub@gmail.com</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Regional focus</p><p className="mt-2 font-black">Rwanda and East Africa</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Contact</p><p className="mt-2 font-black">+250 792 447 121</p></div></div></div>
         </div>
       </section>
 

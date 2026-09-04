@@ -11,6 +11,6 @@ export const SITE_CONTACT = {
 export const SITE = {
   name: "Research Support and Research Ecosystem",
   shortName: "RSRE",
-  publisher: "MedTech Rwanda Ltd",
-  tagline: "Research. Connect. Build. Publish. Impact.",
+  publisher: "RSRE",
+  tagline: "Learn research. Find evidence. Build projects. Move knowledge toward action.",
 };

@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import api from "../utils/api";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -20,6 +21,14 @@ export default function DashboardLayout({
   const [open, setOpen] = useState(false);
   const [checking, setChecking] = useState(true);
 
+  const dashboardFor = (userRole: string) => {
+    if (userRole === "administrator") return "/dashboard/admin";
+    if (userRole === "editor_in_chief") return "/dashboard/editor-in-chief";
+    if (userRole === "editor") return "/dashboard/editor";
+    if (userRole === "reviewer") return "/dashboard/reviewer";
+    return "/dashboard/author";
+  };
+
   // =====================================================
   // AUTHENTICATION
   // =====================================================
@@ -30,27 +39,25 @@ export default function DashboardLayout({
     }
 
     const token = localStorage.getItem("rmsjToken");
-    const userRole = localStorage.getItem("rmsjRole");
-
-    // No token
     if (!token) {
       router.replace("/auth/login");
       return;
     }
-
-    // Required role check
-    if (roleRequired && userRole !== roleRequired) {
-      router.replace("/");
-      return;
-    }
-
-    // Normal role check
-    if (role && userRole !== role) {
-      router.replace("/");
-      return;
-    }
-
-    setChecking(false);
+    api.get("/profile/").then(({ data }) => {
+      const userRole = data?.role;
+      if (!userRole) throw new Error("Profile has no role");
+      localStorage.setItem("rmsjRole", userRole);
+      localStorage.setItem("rmsjUser", JSON.stringify(data));
+      if ((roleRequired && userRole !== roleRequired) || (role && userRole !== role)) {
+        void router.replace(dashboardFor(userRole));
+        return;
+      }
+      setChecking(false);
+    }).catch(() => {
+      localStorage.removeItem("rmsjToken");
+      localStorage.removeItem("rmsjRefresh");
+      void router.replace("/auth/login");
+    });
   }, [router, role, roleRequired]);
 
   // =====================================================

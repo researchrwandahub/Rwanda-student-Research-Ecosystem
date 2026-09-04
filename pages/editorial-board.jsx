@@ -110,7 +110,7 @@ export default function EditorialBoard() {
             <div>
               <p className="rsjh-eyebrow text-emerald-700">EDITORIAL INDEPENDENCE</p>
               <h2 className="mt-2 text-3xl font-black text-slate-950">Technology supports the journal. Editors govern the scholarship.</h2>
-              <p className="mt-4 max-w-3xl text-slate-600 leading-8">The editorial board controls scope, peer review, editorial decisions and publication standards. MedTech Rwanda provides the technology and publisher-side support.</p>
+              <p className="mt-4 max-w-3xl text-slate-600 leading-8">The editorial board controls scope, peer review, editorial decisions and publication standards. RSRE provides the supporting publication workflow.</p>
             </div>
             <a href="mailto:researchrwandahub@gmail.com" className="rsjh-button-green">Contact Editorial Office</a>
           </div>

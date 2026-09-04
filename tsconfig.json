@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "lib": ["dom", "dom.iterable", "es2020"],
+    "target": "es2021",
+    "lib": ["dom", "dom.iterable", "es2021"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -9,7 +9,7 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -17,5 +17,5 @@
     "types": ["node"]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "frontend_backup_V38", "RSRE", "v44work", "v45", "RSRE_V35_TEST"]
 }

@@ -10,8 +10,9 @@ type RecordItem = {
   year?: number | null
   journal?: string | null
   doi?: string | null
+  pmid?: string | null
   url?: string | null
-  open_access?: boolean
+  open_access?: boolean | null
   citations?: number
   specialty?: string | null
 }
@@ -30,7 +31,11 @@ export default function Discovery() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    try { setSaved(Boolean(localStorage.getItem('rsre_discovery_saved_search'))) } catch (_) {}
+    try {
+      const savedQuery = localStorage.getItem('rsre_discovery_saved_search') || ''
+      setSaved(Boolean(savedQuery))
+      if (savedQuery) setQuery(savedQuery)
+    } catch (_) {}
   }, [])
 
   async function search(e?: React.FormEvent) {
@@ -70,7 +75,7 @@ export default function Discovery() {
   return (
     <ApplicationShell
       name="Research Discovery"
-      description="Find health research, researchers, journals and evidence signals across RSJH and major scholarly indexes."
+      description="Search local RSRE records and trusted scholarly indexes. Check the original record before citing."
       nav={[
         ['/research-discovery', 'Discover'],
         ['/research-analytics', 'Analytics'],
@@ -85,7 +90,7 @@ export default function Discovery() {
             <div className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">Evidence discovery</div>
             <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">Search beyond one database.</h2>
             <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
-              RSRE combines local student research with OpenAlex and Crossref so a researcher can move from a question to the existing evidence before starting a new project.
+              Search Local RSRE, PubMed, Europe PMC, OpenAlex and Crossref in one place. Each result keeps its source visible so you can verify the original record before using it.
             </p>
           </div>
 
@@ -109,9 +114,11 @@ export default function Discovery() {
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <select value={source} onChange={e => setSource(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm">
               <option value="all">All sources</option>
-              <option value="rsjh">RSJH only</option>
+              <option value="rsjh">Local RSRE only</option>
+              <option value="pubmed">PubMed / NCBI</option>
               <option value="openalex">OpenAlex</option>
               <option value="crossref">Crossref</option>
+              <option value="europepmc">Europe PMC</option>
             </select>
             <select value={year} onChange={e => setYear(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm">
               <option value="">Any year</option>
@@ -120,8 +127,13 @@ export default function Discovery() {
             <select value={oa} onChange={e => setOa(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm">
               <option value="all">Any access</option>
               <option value="true">Open access</option>
-              <option value="false">Not marked open access</option>
+              <option value="false">Closed access (confirmed)</option>
             </select>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2" aria-label="Rwanda-focused search ideas">
+            {['malaria Rwanda', 'digital health Rwanda', 'maternal health Rwanda', 'community health workers Rwanda', 'health information systems Rwanda', 'implementation research Rwanda'].map(term => (
+              <button key={term} type="button" onClick={() => setQuery(term)} className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-emerald-400 hover:text-white">{term}</button>
+            ))}
           </div>
         </section>
 
@@ -130,7 +142,7 @@ export default function Discovery() {
         {submitted && !loading && (
           <section className="mt-7 grid gap-4 md:grid-cols-3">
             <InsightCard title="What exists" value={total.toString()} detail="records in this discovery run" />
-            <InsightCard title="Local signal" value={localResults.length.toString()} detail="RSJH records matching your query" />
+            <InsightCard title="Local signal" value={localResults.length.toString()} detail="Local RSRE records matching your query" />
             <InsightCard title="Next move" value="Explore gaps" detail="Use the evidence to refine a research question" />
           </section>
         )}
@@ -147,7 +159,7 @@ export default function Discovery() {
 
         {submitted && localResults.length > 0 && (
           <section className="mt-6">
-            <SectionHeading title="RSJH research" subtitle="Published research from the Rwanda Student Journal for Health." />
+            <SectionHeading title="Local RSRE research" subtitle="Published research from RSRE's journal and publication component." />
             <div className="grid gap-4">
               {localResults.map(item => <ResearchCard key={`rsjh-${item.id}`} item={item} />)}
             </div>
@@ -165,9 +177,14 @@ export default function Discovery() {
 
         {submitted && !loading && total === 0 && (
           <section className="mt-8 rounded-3xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
-            <div className="text-4xl">🔎</div>
             <h3 className="mt-3 text-xl font-black">No matching records</h3>
-            <p className="mt-2 text-sm text-slate-500">Try broader keywords, remove the year filter, or switch back to all sources.</p>
+            <p className="mt-2 text-sm text-slate-500">Try broader keywords, remove a filter, or continue your search with an external source.</p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <ExternalSearch href={externalSearch('https://scholar.google.com/scholar?q=', submitted)} label="Search Google Scholar" />
+              <ExternalSearch href={externalSearch('https://www.researchgate.net/search/publication?q=', submitted)} label="Search ResearchGate" />
+              <ExternalSearch href={externalSearch('https://pubmed.ncbi.nlm.nih.gov/?term=', submitted)} label="Search PubMed" />
+              <ExternalSearch href={externalSearch('https://europepmc.org/search?query=', submitted)} label="Search Europe PMC" />
+            </div>
           </section>
         )}
 
@@ -182,6 +199,7 @@ export default function Discovery() {
             </div>
           </section>
         )}
+        {submitted && !loading && total > 0 && <section className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5"><div className="text-xs font-black uppercase tracking-wider text-slate-500">External discovery pathways</div><p className="mt-2 text-sm text-slate-600">Google Scholar and ResearchGate are external search services. RSRE does not scrape or index them directly.</p><div className="mt-4 flex flex-wrap gap-2"><ExternalSearch href={externalSearch('https://scholar.google.com/scholar?q=', submitted)} label="Search Google Scholar" /><ExternalSearch href={externalSearch('https://www.researchgate.net/search/publication?q=', submitted)} label="Search ResearchGate" /></div></section>}
 
         {submitted && (
           <section className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -237,6 +255,7 @@ function ResearchCard({ item }: { item: RecordItem }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">{item.source}</span>
         {item.open_access && <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">Open access</span>}
+        {item.open_access === null && <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">Access unknown</span>}
         {item.year && <span className="text-xs font-bold text-slate-400">{item.year}</span>}
       </div>
       <h4 className="mt-3 text-lg font-black leading-7 text-slate-950">{item.title}</h4>
@@ -248,12 +267,16 @@ function ResearchCard({ item }: { item: RecordItem }) {
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
         {item.doi && <span className="max-w-full truncate rounded-lg bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600">DOI: {item.doi}</span>}
+        {item.pmid && <span className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600">PMID: {item.pmid}</span>}
         {link !== '#' && (
           <a href={link} target={external ? '_blank' : undefined} rel={external ? 'noreferrer' : undefined} className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white">
-            {external ? 'Open source ↗' : 'Open RSJH article'}
+            {external ? 'Open source ↗' : 'Open local article'}
           </a>
         )}
       </div>
     </article>
   )
 }
+
+function externalSearch(prefix: string, query: string) { return `${prefix}${encodeURIComponent(query)}` }
+function ExternalSearch({ href, label }: { href: string; label: string }) { return <a href={href} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-800 hover:border-emerald-500">{label} ↗</a> }

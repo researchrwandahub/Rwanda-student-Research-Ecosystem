@@ -2,8 +2,11 @@ import {useEffect,useMemo,useState} from 'react';
 import ApplicationShell from '../components/ApplicationShell';
 
 const API=process.env.NEXT_PUBLIC_API_URL||process.env.NEXT_PUBLIC_API_BASE||'/api/rsre';
-function auth(){if(typeof window==='undefined') return {}; const t=localStorage.getItem('access')||localStorage.getItem('token'); return t?{Authorization:`Bearer ${t}`}:{}}
-
+function auth(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+  const t = localStorage.getItem('access') || localStorage.getItem('token')
+  return t ? { Authorization: 'Bearer ' + t } : {}
+}
 const purposes=[['research_project','Project collaborator'],['mentorship','Mentor / mentee'],['coauthor','Co-author'],['methods','Methods / statistics'],['peer_learning','Peer learning']];
 
 export default function Collaboration(){
