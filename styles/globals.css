@@ -312,3 +312,10 @@ html, body { overflow-x: clip; }
 }
 
 @supports not (overflow: clip) { html, body { overflow-x:hidden; } }
+
+/* RSRE media rendering safety */
+img {
+  opacity: 1;
+  filter: none;
+  mix-blend-mode: normal;
+}
