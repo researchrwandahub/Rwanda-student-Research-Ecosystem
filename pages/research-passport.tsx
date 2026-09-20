@@ -26,9 +26,11 @@ export default function Passport() {
   const [data, setData] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [username, setUsername] = useState('');
   const [message, setMessage] = useState('');
   const [tab, setTab] = useState<'overview'|'evidence'|'credentials'>('overview');
-  const [form, setForm] = useState({ headline: '', career_goal: '', skills: '', methods: '', interests: '', collaborations: '', competencies: '', visibility: 'network' });
+  const PUBLIC_FIELD_OPTIONS = [['headline','Research headline'],['career_goal','Research goal'],['skills','Skills'],['methods','Methods'],['interests','Research interests'],['competencies','Competencies'],['biography','Biography'],['affiliation','Affiliation'],['orcid','ORCID']] as const;
+  const [form, setForm] = useState({ headline: '', career_goal: '', skills: '', methods: '', interests: '', collaborations: '', competencies: '', visibility: 'network', public_fields: [] as string[] });
   const [evidence, setEvidence] = useState({ evidence_type: 'credential', title: '', description: '', evidence_date: '' });
 
   async function load() {
@@ -36,10 +38,11 @@ export default function Passport() {
     try {
       const res = await api.get('/research-passport/', headers());
       setData(res.data);
+      try { setUsername(JSON.parse(localStorage.getItem('rmsjUser') || '{}')?.username || localStorage.getItem('rmsjUsername') || ''); } catch { setUsername(localStorage.getItem('rmsjUsername') || ''); }
       setForm({
         headline: res.data.profile?.headline || '', career_goal: res.data.profile?.career_goal || '', skills: res.data.profile?.skills || '',
         methods: res.data.profile?.methods || '', interests: res.data.profile?.interests || '', collaborations: res.data.profile?.collaborations || '',
-        competencies: (res.data.profile?.competencies || []).join(', '), visibility: res.data.profile?.visibility || 'network',
+        competencies: (res.data.profile?.competencies || []).join(', '), visibility: res.data.profile?.visibility || 'network', public_fields: res.data.profile?.public_fields || [],
       });
     } catch { setData(null); setMessage('Sign in to view your Research Passport.'); }
     finally { setLoading(false); }
@@ -49,7 +52,7 @@ export default function Passport() {
   async function saveProfile(e: FormEvent) {
     e.preventDefault(); setSaving(true); setMessage('');
     try {
-      await api.put('/research-passport/', { ...form, competencies: form.competencies.split(',').map(s => s.trim()).filter(Boolean) }, headers());
+      await api.put('/research-passport/', { ...form, competencies: form.competencies.split(',').map(s => s.trim()).filter(Boolean), public_fields: form.public_fields }, headers());
       setMessage('Passport updated. Your research identity has been refreshed.'); await load();
     } catch (err: any) { setMessage(err?.response?.data?.detail || 'Could not update your passport.'); }
     finally { setSaving(false); }
@@ -141,8 +144,9 @@ export default function Passport() {
           <h3 className="mt-2 text-2xl font-black">Tell RSRE what you are becoming good at.</h3>
           <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="block"><span className="text-sm font-black text-slate-700">Research headline</span><input value={form.headline} onChange={e => setForm({...form,headline:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" /></label><label className="block"><span className="text-sm font-black text-slate-700">Research goal</span><input value={form.career_goal} onChange={e => setForm({...form,career_goal:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" /></label></div>
           {([['skills','Skills'],['methods','Methods'],['interests','Research interests'],['collaborations','Collaboration interests']] as string[][]).map(([key,label]) => <label key={key} className="mt-4 block"><span className="text-sm font-black text-slate-700">{label}</span><textarea rows={2} value={(form as any)[key]} onChange={e => setForm({...form,[key]:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" /></label>)}
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5"><div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Public profile</div><p className="mt-2 text-sm leading-6 text-slate-600">Your Passport can be shared publicly. Only fields you explicitly select below are exposed on your public page.</p><div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{PUBLIC_FIELD_OPTIONS.map(([key,label])=><label key={key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700"><input type="checkbox" checked={form.public_fields.includes(key)} onChange={(e)=>setForm({...form, public_fields:e.target.checked?[...form.public_fields,key]:form.public_fields.filter(x=>x!==key)})}/>{label}</label>)}</div>{form.visibility==='public' && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">Public sharing is controlled by your visibility setting and field selection. Your private evidence timeline is not published.</div>}</div>
           <div className="grid gap-4 sm:grid-cols-2"><label className="mt-4 block"><span className="text-sm font-black text-slate-700">Competencies</span><input value={form.competencies} onChange={e => setForm({...form,competencies:e.target.value})} placeholder="epidemiology, qualitative research, R, systematic review" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" /></label><label className="mt-4 block"><span className="text-sm font-black text-slate-700">Visibility</span><select value={form.visibility} onChange={e => setForm({...form,visibility:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"><option value="private">Private</option><option value="network">RSRE network</option><option value="public">Public</option></select></label></div>
-          <button disabled={saving} className="mt-5 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white">{saving ? 'Saving…' : 'Save passport'}</button>
+          <button disabled={saving} className="mt-5 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white">{saving ? 'Saving…' : 'Save passport'}</button>{form.visibility === 'public' && username && <Link href={`/passport/${encodeURIComponent(username)}`} className="mt-3 ml-2 inline-flex rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-800">View public Passport</Link>}
         </form>}
       </>}
     </main>

@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import os
 from dotenv import load_dotenv
 
@@ -20,11 +20,20 @@ DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 _secret_key = os.environ.get("SECRET_KEY", "").strip()
 _environment = os.environ.get("DJANGO_ENV", "development").strip().lower()
+DJANGO_ENV = _environment  # exposed so urls.py (and anywhere else) can branch on it too
 if _environment == "production" and not _secret_key:
     raise RuntimeError("SECRET_KEY must be configured in production.")
 SECRET_KEY = _secret_key or "development-only-insecure-secret"
 
-_allowed_hosts = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+# Google sign-in. Client ID only (public, safe to expose to the frontend
+# too) — there is no client secret anywhere in this flow because we verify
+# the ID token directly against Google's tokeninfo endpoint server-side
+# rather than doing an OAuth authorization-code exchange. Left blank in an
+# environment that hasn't configured it — GoogleAuthView and the frontend
+# button both check for this and stay off rather than pretending to work.
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+
+_allowed_hosts = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,192.168.1.70").split(",")
 ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts if host.strip()]
 
 
@@ -296,10 +305,16 @@ CORS_ALLOWED_ORIGINS = [origin.strip().rstrip("/") for origin in _cors_origins i
 
 CORS_ALLOW_CREDENTIALS = True
 
-_csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", os.environ.get("FRONTEND_URL", "http://localhost:3000"))
+_csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", os.environ.get("FRONTEND_URL", "http://localhost:3000,http://192.168.1.70:3000"))
 CSRF_TRUSTED_ORIGINS = [origin.strip().rstrip("/") for origin in _csrf_origins.split(",") if origin.strip()]
 
-if not DEBUG:
+# Force-HTTPS and other production-only hardening is gated on DJANGO_ENV,
+# not DEBUG. A developer can run the backend locally with DEBUG=False for
+# other testing purposes without accidentally triggering an HTTPS redirect
+# loop against a plain-HTTP local server (which previously broke every API
+# call from the frontend with a network error). Render/production deploys
+# must set DJANGO_ENV=production explicitly.
+if _environment == "production":
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     SESSION_COOKIE_SECURE = True

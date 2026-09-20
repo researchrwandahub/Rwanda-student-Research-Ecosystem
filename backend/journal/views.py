@@ -1,3 +1,4 @@
+from urllib.error import HTTPError, URLError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -24,7 +25,7 @@ from rest_framework.permissions import (
     IsAuthenticated,
 )
 
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -48,7 +49,7 @@ from .models import (
     ReviewerInvitation,
     ArticleRevision,
     EditorialDecision,
-    AIUsageLog, EmailVerificationToken, ResearchIdea, ResearchProject, ResearchProjectMember, ResearchProjectMilestone, ResearchOpportunity, EditorialBoardMember, ResearchPassport, PassportEvidence, CoAuthorContribution, Partner, FoundingMember, PublicationSettings, StudentGift, ResearchSandboxWorkspace, ResearchSandboxNote, ResearchSandboxDataset,
+    AIUsageLog, EmailVerificationToken, GoogleIdentity, ResearchIdea, ResearchProject, ResearchProjectMember, ResearchProjectMilestone, ResearchOpportunity, EditorialBoardMember, ResearchPassport, PassportEvidence, CoAuthorContribution, Partner, FoundingMember, PublicationSettings, StudentGift, ResearchSandboxWorkspace, ResearchSandboxRun, ResearchSandboxNote, ResearchSandboxDataset,
 )
 
 from .serializers import (
@@ -65,7 +66,7 @@ from .serializers import (
     AIUsageLogSerializer,
     PartnerSerializer, FoundingMemberSerializer,
 )
-from .serializers import ResearchIdeaSerializer, ResearchProjectSerializer, ResearchProjectMemberSerializer, ResearchProjectMilestoneSerializer, ResearchOpportunitySerializer, EditorialBoardMemberSerializer, ResearchPassportSerializer, PassportEvidenceSerializer, ResearchSandboxWorkspaceSerializer, ResearchSandboxNoteSerializer, ResearchSandboxDatasetSerializer
+from .serializers import ResearchIdeaSerializer, ResearchProjectSerializer, ResearchProjectMemberSerializer, ResearchProjectMilestoneSerializer, ResearchOpportunitySerializer, EditorialBoardMemberSerializer, ResearchPassportSerializer, PassportEvidenceSerializer, ResearchSandboxWorkspaceSerializer, ResearchSandboxNoteSerializer, ResearchSandboxDatasetSerializer, ResearchSandboxRunSerializer
 from .notifications import notify, verification, welcome, send_invitation_email, send_student_gift_email
 from .integrations.passport import record_manuscript_submission, record_peer_review, record_publication
 from django.contrib.auth.tokens import default_token_generator
@@ -81,6 +82,7 @@ import re
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
+from concurrent.futures import ThreadPoolExecutor, as_completed
 # =========================
 # REVIEWER REGISTER
 # =========================
@@ -519,6 +521,21 @@ class CustomTokenObtainPairSerializer(
     TokenObtainPairSerializer
 ):
 
+    def validate(self, attrs):
+        # Authenticate first (this is where a wrong username/password already
+        # fails) â€” only after real credentials succeed do we check
+        # verification, so a bad password still reports as a bad password,
+        # not as an unverified-email error.
+        data = super().validate(attrs)
+        # Superusers are created via `createsuperuser` (or the Django admin),
+        # not the public registration flow, so they never go through the
+        # email-verification email in the first place. Exempting them avoids
+        # locking out existing administrator accounts with this new check.
+        if not self.user.email_verified and not self.user.is_superuser:
+            raise ValidationError({
+                "detail": "Please verify your email before signing in. Check your inbox for the verification link."
+            })
+        return data
 
     @classmethod
     def get_token(cls, user):
@@ -1050,7 +1067,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
             user,
             "Draft created successfully",
             f'Your manuscript draft "{article.title}" has been created successfully. You can continue developing it from your author dashboard.',
-            "RSJH — Draft created successfully",
+            "RSJH â€” Draft created successfully",
         )
 
 
@@ -1237,7 +1254,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
             article.author,
             "Manuscript submitted",
             f"Dear Author,\n\nYour manuscript \"{article.title}\" has been successfully submitted to the Rwanda Student Journal for Health.\n\nThe next stage is editorial screening. The editorial team will assess scope, completeness and readiness for peer review.\n\nYou can track the manuscript status from your author dashboard.",
-            "RSJH — Manuscript Submitted",
+            "RSJH â€” Manuscript Submitted",
             f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/dashboard",
             "Track Manuscript",
         )
@@ -1246,7 +1263,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
                 editor,
                 "New manuscript submitted",
                 f"Dear Editor,\n\nA new manuscript has been submitted to RSJH and is awaiting editorial screening.\n\nManuscript: {article.title}\n\nPlease review the submission for scope, completeness, ethics and readiness for peer review.",
-                "RSJH — New Manuscript Submitted",
+                "RSJH â€” New Manuscript Submitted",
                 f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/dashboard",
                 "Open Editorial Dashboard",
             )
@@ -1439,7 +1456,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
             article.author,
             "Reviewer feedback available",
             f"Dear Author,\n\nReviewer feedback is now available for \"{article.title}\".\n\n{message}\n\nPlease review the comments carefully and follow the next action shown in your RSJH dashboard.",
-            "RSJH — Reviewer Feedback Available",
+            "RSJH â€” Reviewer Feedback Available",
             f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/dashboard",
             "View Reviewer Feedback",
         )
@@ -1452,7 +1469,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 editor,
                 "Reviewer feedback submitted",
                 f"Dear Editor,\n\nA reviewer has completed feedback for \"{article.title}\".\n\n{message}\n\nPlease open the editorial dashboard to review the report and determine the next editorial action.",
-                "RSJH — Reviewer Feedback Submitted",
+                "RSJH â€” Reviewer Feedback Submitted",
                 f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/dashboard",
                 "Open Editorial Dashboard",
             )
@@ -1718,7 +1735,7 @@ class EditorialDecisionViewSet(viewsets.ModelViewSet):
                 article.author,
                 "Manuscript accepted",
                 "\n".join(metadata_lines) + "\n\nYour manuscript has been accepted for publication.",
-                "RSJH — Manuscript Accepted",
+                "RSJH â€” Manuscript Accepted",
                 dashboard_url,
                 "View Publication Details",
             )
@@ -1727,7 +1744,7 @@ class EditorialDecisionViewSet(viewsets.ModelViewSet):
                 article.author,
                 "Article published",
                 "\n".join(metadata_lines) + "\n\nYour article is now published in the RSJH archive.",
-                "RSJH — Your Article Has Been Published",
+                "RSJH â€” Your Article Has Been Published",
                 dashboard_url,
                 "View Published Article",
             )
@@ -1737,7 +1754,7 @@ class EditorialDecisionViewSet(viewsets.ModelViewSet):
                 article.author,
                 "Revision required",
                 "\n".join(metadata_lines) + "\n\nPlease review the editorial rationale and submit your revision through the RSJH dashboard.",
-                "RSJH — Revision Required",
+                "RSJH â€” Revision Required",
                 dashboard_url,
                 "Submit Revision",
             )
@@ -1746,7 +1763,7 @@ class EditorialDecisionViewSet(viewsets.ModelViewSet):
                 article.author,
                 "Manuscript rejected",
                 "\n".join(metadata_lines) + "\n\nPlease review the editorial rationale provided in your RSJH dashboard.",
-                "RSJH — Editorial Decision",
+                "RSJH â€” Editorial Decision",
                 dashboard_url,
                 "View Editorial Decision",
             )
@@ -2397,6 +2414,103 @@ class VerifyEmailView(APIView):
         x=EmailVerificationToken.objects.select_related("user").filter(token=request.data.get("token","")).first()
         if not x or x.expires_at<timezone.now(): return Response({"detail":"Invalid or expired verification token."},status=400)
         x.user.email_verified=True; x.user.save(update_fields=["email_verified"]); x.delete(); return Response({"message":"Email verified successfully."})
+
+
+class GoogleAuthView(APIView):
+    """Real server-side Google sign-in, not a decorative button.
+
+    Verifies the ID token directly against Google's own tokeninfo endpoint
+    (no new dependency needed â€” reuses `requests`, already required by
+    Discovery). Checks issuer, audience (our configured client ID) and
+    that Google itself marks the email verified, then finds or creates the
+    matching RSRE user via the stable Google `sub` claim â€” never by email
+    or display name alone â€” and issues the exact same JWT pair normal
+    login produces, so the rest of the app treats it identically.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        client_id = getattr(settings, "GOOGLE_CLIENT_ID", "")
+        if not client_id:
+            return Response(
+                {"detail": "Google sign-in is not configured on this server yet."},
+                status=503,
+            )
+
+        credential = request.data.get("credential", "")
+        if not credential:
+            return Response({"detail": "Missing Google credential."}, status=400)
+
+        try:
+            verify_request = Request(
+                "https://oauth2.googleapis.com/tokeninfo?id_token=" + credential
+            )
+            with urlopen(verify_request, timeout=8) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (URLError, HTTPError, TimeoutError, ValueError, json.JSONDecodeError, OSError):
+            return Response({"detail": "Could not verify Google credential. Please try again."}, status=502)
+
+        # Google returns a 200 with an "error_description" field for a bad
+        # token rather than a non-200 status in some cases â€” check explicitly.
+        if payload.get("error_description"):
+            return Response({"detail": "Google sign-in failed: invalid credential."}, status=401)
+        if payload.get("aud") != client_id:
+            return Response({"detail": "Google sign-in failed: audience mismatch."}, status=401)
+        if payload.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+            return Response({"detail": "Google sign-in failed: unexpected issuer."}, status=401)
+        if str(payload.get("email_verified", "")).lower() != "true":
+            return Response({"detail": "Your Google account's email is not verified."}, status=401)
+
+        subject = payload.get("sub")
+        email = (payload.get("email") or "").strip().lower()
+        if not subject or not email:
+            return Response({"detail": "Google did not return the required identity information."}, status=401)
+
+        identity = GoogleIdentity.objects.select_related("user").filter(provider_subject=subject).first()
+
+        if identity:
+            user = identity.user
+        else:
+            # Never silently attach a Google login to an existing
+            # password-based account just because the email matches â€”
+            # emails can be reused/reassigned, and doing so could let
+            # someone hijack an existing account by controlling that
+            # Gmail inbox. Only a brand-new account is created here.
+            if User.objects.filter(email__iexact=email).exists():
+                return Response({
+                    "detail": "An RSRE account already exists for this email. Please sign in with your password, then contact support to link Google sign-in.",
+                }, status=409)
+
+            base_username = re.sub(r"[^a-zA-Z0-9_]", "", email.split("@")[0]) or "researcher"
+            username = base_username
+            suffix = 1
+            while User.objects.filter(username=username).exists():
+                suffix += 1
+                username = f"{base_username}{suffix}"
+
+            user = User.objects.create(
+                username=username,
+                email=email,
+                full_name=payload.get("name", "") or email.split("@")[0],
+                # Google already verifies the email address itself.
+                email_verified=True,
+                role="reader",
+            )
+            user.set_unusable_password()
+            user.save(update_fields=["password"])
+            GoogleIdentity.objects.create(user=user, provider_subject=subject, email_at_link=email)
+            welcome(user)
+
+        if user.account_status != "active":
+            return Response({"detail": "This account is not active. Please contact support."}, status=403)
+
+        token = CustomTokenObtainPairSerializer.get_token(user)
+        return Response({
+            "access": str(token.access_token),
+            "refresh": str(token),
+        })
+
+
 class RequestPasswordResetView(APIView):
     permission_classes=[AllowAny]
     def post(self,request):
@@ -2537,7 +2651,7 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
         if milestone.status == "done" and not was_done:
             from rsre_core.services import emit_research_event
             emit_research_event(
-                project.owner, subject="RSRE — research milestone completed",
+                project.owner, subject="RSRE â€” research milestone completed",
                 message=f"Milestone completed: {milestone.title} in {project.title}. Your next project action is now ready.",
                 event_key="incubator_milestone_completed", application_key="incubator",
                 action_url=f"/incubator/{project.id}",
@@ -2545,7 +2659,7 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
             )
             for member in project.members.filter(status="active").select_related("user"):
                 if member.user_id != project.owner_id:
-                    emit_research_event(member.user, subject="RSRE — project milestone completed", message=f"{milestone.title} was completed in {project.title}.", event_key="incubator_milestone_team_update", application_key="incubator", action_url=f"/incubator/{project.id}")
+                    emit_research_event(member.user, subject="RSRE â€” project milestone completed", message=f"{milestone.title} was completed in {project.title}.", event_key="incubator_milestone_team_update", application_key="incubator", action_url=f"/incubator/{project.id}")
         return Response(ResearchProjectMilestoneSerializer(milestone).data)
 
     @action(detail=True, methods=["post"], url_path="advance")
@@ -2559,7 +2673,7 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
         project.status = next_status; project.save(update_fields=["status", "updated_at"])
         from rsre_core.services import emit_research_event
         emit_research_event(
-            project.owner, subject="RSRE — research project stage updated",
+            project.owner, subject="RSRE â€” research project stage updated",
             message=f"{project.title} moved to {project.get_status_display()}. Review the next recommended action in your project cockpit.",
             event_key="incubator_stage_updated", application_key="incubator", action_url=f"/incubator/{project.id}",
         )
@@ -2581,6 +2695,14 @@ class ResearchSandboxWorkspaceViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         workspace = self.get_object()
         serializer.save()
+
+    @action(detail=True, methods=["post"], url_path="add-run")
+    def add_run(self, request, pk=None):
+        workspace = self.get_object()
+        serializer = ResearchSandboxRunSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        run = serializer.save(workspace=workspace)
+        return Response(ResearchSandboxRunSerializer(run).data, status=201)
 
     @action(detail=True, methods=["post"], url_path="add-note")
     def add_note(self, request, pk=None):
@@ -2647,6 +2769,7 @@ class ResearchDiscoveryView(APIView):
 
         results = []
         source_status = {"PubMed": "not_requested", "OpenAlex": "not_requested", "Europe PMC": "not_requested", "Crossref": "not_requested", "Local RSRE": "not_requested"}
+        source_errors = {}
 
         def include_external(item):
             if year_filter and item.get("year") != year_filter:
@@ -2656,10 +2779,16 @@ class ResearchDiscoveryView(APIView):
                 return False
             return True
 
-        # PubMed is queried only through NCBI Entrez E-utilities.  The two light
-        # requests deliberately avoid scraping and keep a small, bounded result set.
-        if source_filter in {"all", "pubmed"}:
-            source_status["PubMed"] = "ok"
+        # The four external sources are independent HTTP calls with no
+        # shared state, so they run concurrently instead of one after
+        # another. Sequentially, a worst-case search (source=all, every
+        # source slow) could take up to ~32 seconds (4 x 8s timeout)
+        # before responding at all â€” long enough to look "unavailable"
+        # even when every source eventually would have answered. Running
+        # them in parallel caps the worst case at ~8 seconds.
+
+        def fetch_pubmed():
+            records = []
             try:
                 common = {"db": "pubmed", "term": query, "retmode": "json", "retmax": rows}
                 search_request = Request(
@@ -2690,13 +2819,13 @@ class ResearchDiscoveryView(APIView):
                             "citations": 0,
                         }
                         if include_external(record):
-                            results.append(record)
+                            records.append(record)
+                return "PubMed", "ok", records
             except (URLError, HTTPError, TimeoutError, ValueError, json.JSONDecodeError, OSError):
-                source_status["PubMed"] = "unavailable"
+                return "PubMed", "unavailable", []
 
-        # OpenAlex
-        if source_filter in {"all", "openalex"}:
-            source_status["OpenAlex"] = "ok"
+        def fetch_openalex():
+            records = []
             try:
                 params = urlencode({
                     "search": query,
@@ -2729,13 +2858,13 @@ class ResearchDiscoveryView(APIView):
                         "citations": item.get("cited_by_count", 0),
                     }
                     if include_external(record):
-                        results.append(record)
+                        records.append(record)
+                return "OpenAlex", "ok", records
             except Exception:
-                source_status["OpenAlex"] = "unavailable"
+                return "OpenAlex", "unavailable", []
 
-        # Europe PMC is a health-focused public index and does not require an API key.
-        if source_filter in {"all", "europepmc"}:
-            source_status["Europe PMC"] = "ok"
+        def fetch_europepmc():
+            records = []
             try:
                 params = urlencode({"query": query, "pageSize": rows, "format": "json"})
                 req = Request(
@@ -2763,13 +2892,13 @@ class ResearchDiscoveryView(APIView):
                         "citations": item.get("citedByCount", 0) or 0,
                     }
                     if include_external(record):
-                        results.append(record)
+                        records.append(record)
+                return "Europe PMC", "ok", records
             except Exception:
-                source_status["Europe PMC"] = "unavailable"
+                return "Europe PMC", "unavailable", []
 
-        # Crossref
-        if source_filter in {"all", "crossref"}:
-            source_status["Crossref"] = "ok"
+        def fetch_crossref(existing_dois):
+            records = []
             try:
                 params = urlencode({
                     "query.bibliographic": query,
@@ -2782,10 +2911,9 @@ class ResearchDiscoveryView(APIView):
                 )
                 with urlopen(req, timeout=8) as response:
                     data = json.loads(response.read().decode("utf-8"))
-                seen_dois = {r.get("doi", "").lower() for r in results if r.get("doi")}
                 for item in data.get("message", {}).get("items", []):
                     doi = item.get("DOI")
-                    if doi and doi.lower() in seen_dois:
+                    if doi and doi.lower() in existing_dois:
                         continue
                     titles = item.get("title") or []
                     dates = item.get("published-print") or item.get("published-online") or {}
@@ -2807,9 +2935,59 @@ class ResearchDiscoveryView(APIView):
                         "citations": item.get("is-referenced-by-count", 0),
                     }
                     if include_external(record):
-                        results.append(record)
+                        records.append(record)
+                return "Crossref", "ok", records
             except Exception:
-                source_status["Crossref"] = "unavailable"
+                return "Crossref", "unavailable", []
+
+        # PubMed, OpenAlex and Europe PMC don't depend on each other's
+        # results, so they run in parallel. Crossref runs after (still
+        # inside the same worker pool) because it deliberately skips DOIs
+        # already found by the other three, to avoid duplicate records.
+        active_sources = []
+        if source_filter in {"all", "pubmed"}:
+            active_sources.append(("PubMed", fetch_pubmed))
+        if source_filter in {"all", "openalex"}:
+            active_sources.append(("OpenAlex", fetch_openalex))
+        if source_filter in {"all", "europepmc"}:
+            active_sources.append(("Europe PMC", fetch_europepmc))
+
+        if active_sources:
+            with ThreadPoolExecutor(max_workers=len(active_sources)) as pool:
+                futures = [
+                    pool.submit(fn)
+                    for _, fn in active_sources
+                ]
+
+                for source_name, future in zip(
+                    [name for name, _ in active_sources],
+                    futures,
+                ):
+                    try:
+                        result = future.result()
+
+                        if len(result) == 4:
+                            name, source_state, records, error_detail = result
+                        else:
+                            name, source_state, records = result
+                            error_detail = None
+
+                        source_status[name] = source_state
+
+                        if error_detail:
+                            source_errors[name] = error_detail
+
+                        results.extend(records or [])
+
+                    except Exception as exc:
+                        source_status[source_name] = "unavailable"
+                        source_errors[source_name] = str(exc)
+
+        if source_filter in {"all", "crossref"}:
+            existing_dois = {r.get("doi", "").lower() for r in results if r.get("doi")}
+            name, source_state, records = fetch_crossref(existing_dois)
+            source_status[name] = source_state
+            results.extend(records)
 
         # Local RSRE research is always useful to Rwandan researchers and does
         # not depend on external services.
@@ -2861,15 +3039,51 @@ class ResearchDiscoveryView(APIView):
             seen.add(key)
             unique.append(record)
 
-        return Response({
+        external_limit = max(30, rows * 4)
+        returned_results = unique[:external_limit]
+
+        unavailable_sources = [
+            name
+            for name, source_state in source_status.items()
+            if source_state == "unavailable"
+        ]
+
+        payload = {
             "query": query,
             "count": len(unique),
-            "results": unique[:30],
+            "returned_count": len(returned_results),
+            "has_more": len(unique) > len(returned_results),
+            "results": returned_results,
             "local_results": local_results,
-            "sources": ["PubMed", "OpenAlex", "Europe PMC", "Crossref", "Local RSRE"],
+            "sources": [
+                "PubMed",
+                "OpenAlex",
+                "Europe PMC",
+                "Crossref",
+                "Local RSRE",
+            ],
             "source_status": source_status,
-            "filters": {"source": source_filter, "year": year_filter, "oa": oa_filter},
-        })
+            "filters": {
+                "source": source_filter,
+                "year": year_filter,
+                "oa": oa_filter,
+            },
+            "partial": bool(unavailable_sources),
+            "unavailable_sources": unavailable_sources,
+        }
+
+        if not unique and not local_results:
+            payload["message"] = (
+                f'No research records were found for "{query}".'
+            )
+
+        if unavailable_sources:
+            payload["source_message"] = (
+                "Some scholarly sources were temporarily unavailable. "
+                "Results from available sources are still shown."
+            )
+
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class ExternalOpportunityDiscoveryView(APIView):
@@ -3079,7 +3293,7 @@ class ResearchPassportView(APIView):
             "pathway": [
                 {"stage": "Learn", "done": completed_learning > 0, "detail": f"{completed_learning} verified learning records"},
                 {"stage": "Build", "done": projects.exists(), "detail": f"{projects.count()} research projects"},
-                {"stage": "Contribute", "done": reviews.exists() or milestones > 0, "detail": f"{reviews.count()} peer reviews · {milestones} completed milestones"},
+                {"stage": "Contribute", "done": reviews.exists() or milestones > 0, "detail": f"{reviews.count()} peer reviews Â· {milestones} completed milestones"},
                 {"stage": "Publish", "done": published.exists(), "detail": f"{published.count()} published articles"},
                 {"stage": "Impact", "done": published.exists() and (projects.filter(status="completed").exists() or reviews.exists()), "detail": "Evidence of sustained research contribution"},
             ],
@@ -3095,6 +3309,37 @@ class ResearchPassportView(APIView):
         ser.is_valid(raise_exception=True)
         ser.save(verification_version=p.verification_version + 1)
         return Response(self._snapshot(request.user, p))
+
+
+class PublicResearchPassportView(APIView):
+    """A deliberately small public view; private passport data never crosses this boundary."""
+    permission_classes = [AllowAny]
+
+    def get(self, request, username):
+        passport = ResearchPassport.objects.select_related("user").filter(
+            user__username__iexact=username, visibility="public"
+        ).first()
+        if not passport:
+            return Response({"detail": "This public Research Passport is unavailable."}, status=404)
+
+        user = passport.user
+        allowed = set(passport.public_fields or [])
+        fields = {
+            name: getattr(passport, name) for name in ("headline", "career_goal", "skills", "methods", "interests", "competencies")
+            if name in allowed
+        }
+        profile = {"name": user.full_name or user.get_full_name() or user.username, "username": user.username, **fields}
+        if "biography" in allowed and user.biography:
+            profile["biography"] = user.biography
+        if "affiliation" in allowed:
+            profile["institution"] = user.institution or user.university
+            profile["discipline"] = user.discipline
+        if "orcid" in allowed and user.orcid:
+            profile["orcid"] = user.orcid
+
+        publications = Article.objects.filter(author=user, is_published=True).values("id", "title", "year", "doi")
+        projects = ResearchProject.objects.filter(owner=user, visibility="public_summary").values("id", "title", "discipline", "study_type", "status")
+        return Response({"profile": profile, "publications": list(publications), "projects": list(projects)})
 
 
 class PassportEvidenceView(APIView):

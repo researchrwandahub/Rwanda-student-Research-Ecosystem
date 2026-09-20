@@ -26,6 +26,46 @@ class User(AbstractUser):
     def __str__(self): return self.username
 
 
+class GoogleIdentity(models.Model):
+    """Links an RSRE User to a Google account via Google's stable subject
+    (sub) claim — never by email or display name alone, since either can
+    change or be reused. A unique constraint on provider_subject prevents
+    the same Google account from ever being linked to two different RSRE
+    users. This is additive: it does not touch the existing User table or
+    password-based login at all."""
+    user = models.OneToOneField('User', on_delete=models.CASCADE, related_name='google_identity')
+    provider = models.CharField(max_length=20, default='google')
+    provider_subject = models.CharField(max_length=255, unique=True)
+    email_at_link = models.EmailField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.provider}:{self.provider_subject} -> {self.user.username}"
+
+
+class PolicyAcceptance(models.Model):
+    POLICY_CHOICES = [
+        ("terms", "Terms of Use"),
+        ("privacy", "Privacy Notice"),
+        ("research_guidelines", "Research Community Guidelines"),
+        ("publication_ethics", "Publication Ethics & Editorial Policy"),
+        ("reviewer_guidelines", "Reviewer / Editorial Guidelines"),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="policy_acceptances")
+    policy_type = models.CharField(max_length=40, choices=POLICY_CHOICES)
+    policy_version = models.CharField(max_length=40)
+    accepted_at = models.DateTimeField(default=timezone.now)
+    source = models.CharField(max_length=40, default="registration")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "policy_type", "policy_version"], name="journal_unique_policy_acceptance")]
+        ordering = ["policy_type", "-accepted_at"]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.policy_type} {self.policy_version}"
+
+
 # =========================
 # ARTICLE STATUS
 # =========================
@@ -1061,6 +1101,24 @@ class ResearchSandboxNote(models.Model):
 
     class Meta:
         ordering = ["-updated_at", "-created_at"]
+
+
+class ResearchSandboxRun(models.Model):
+    STATUS_CHOICES = [("planned", "Planned"), ("complete", "Complete"), ("failed", "Failed")]
+    workspace = models.ForeignKey(ResearchSandboxWorkspace, related_name="runs", on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    method = models.TextField(blank=True)
+    result_summary = models.TextField(blank=True)
+    reproducibility_note = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="complete")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-created_at"]
+
+    def __str__(self):
+        return f"{self.title} — {self.workspace.title}"
 
 
 class ResearchSandboxDataset(models.Model):

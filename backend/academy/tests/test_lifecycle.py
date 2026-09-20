@@ -52,3 +52,42 @@ class AcademyCourseLifecycleTests(TestCase):
         response = CertificateVerifyView.as_view()(request, certificate_id=cert.certificate_id)
         self.assertFalse(response.data["valid"])
         self.assertEqual(response.data["status"], "revoked")
+
+class AcademyLearningQualityTests(TestCase):
+    def setUp(self):
+        from academy.models import Quiz, Question, Choice
+        self.user = get_user_model().objects.create_user(username="learner-quality", password="password")
+        self.level = Level.objects.create(number=1, name="Foundations", code="foundations-q", description="Basics")
+        self.module = Module.objects.create(
+            level=self.level, order=1, title="Research Foundations", slug="research-foundations-q", summary="Foundations"
+        )
+        self.lesson = Lesson.objects.create(
+            module=self.module, order=1, title="Core lesson", body=("Research evidence and research questions. " * 120), estimated_minutes=40
+        )
+        self.quiz = Quiz.objects.create(module=self.module, title="Knowledge check", pass_mark=80)
+        question = Question.objects.create(quiz=self.quiz, order=1, prompt="Which comes first?")
+        self.correct = Choice.objects.create(question=question, order=1, text="A clear research question", is_correct=True)
+        Choice.objects.create(question=question, order=2, text="A preferred result", is_correct=False)
+
+    def test_assessment_requires_required_lessons(self):
+        from academy.views import SubmitQuizView
+        factory = APIRequestFactory()
+        request = factory.post("/academy/quizzes/1/submit/", {"answers": {str(self.quiz.questions.first().id): [str(self.correct.id)]}}, format="json")
+        request.user = self.user
+        response = SubmitQuizView.as_view()(request, pk=self.quiz.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("incomplete_lessons", response.data)
+
+    def test_full_assessment_can_be_scored_after_lesson_completion(self):
+        from academy.views import SubmitQuizView
+        from academy.models import LessonProgress
+        LessonProgress.objects.create(user=self.user, lesson=self.lesson)
+        question = self.quiz.questions.first()
+        request = APIRequestFactory().post(
+            "/academy/quizzes/1/submit/", {"answers": {str(question.id): [str(self.correct.id)]}}, format="json"
+        )
+        request.user = self.user
+        response = SubmitQuizView.as_view()(request, pk=self.quiz.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["passed"])
+        self.assertEqual(response.data["questions_answered"], 1)

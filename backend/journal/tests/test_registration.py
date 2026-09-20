@@ -1,6 +1,6 @@
 from django.test import TestCase, override_settings
 
-from journal.models import User
+from journal.models import PolicyAcceptance, User
 from journal.serializers import UserRegistrationSerializer, UserSerializer
 from rest_framework.test import APIClient
 
@@ -16,6 +16,11 @@ class RegistrationTests(TestCase):
             "email": "ada@example.com",
             "password": "StrongPass9!",
             "role": "author",
+            "terms_accepted": True,
+            "privacy_accepted": True,
+            "research_guidelines_accepted": True,
+            "publication_ethics_accepted": False,
+            "reviewer_guidelines_accepted": False,
         }
         data.update(overrides)
         return data
@@ -30,6 +35,19 @@ class RegistrationTests(TestCase):
         self.assertEqual(user.last_name, "Byron")
         self.assertEqual(user.full_name, "Ada Lovelace Byron")
         self.assertTrue(user.check_password("StrongPass9!"))
+        self.assertEqual(PolicyAcceptance.objects.filter(user=user).count(), 3)
+
+    def test_registration_requires_core_policy_acceptance(self):
+        data = self.valid_data(terms_accepted=False)
+        serializer = UserRegistrationSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("policies", serializer.errors)
+
+    def test_editorial_registration_requires_editorial_policies(self):
+        data = self.valid_data(role="reviewer", publication_ethics_accepted=False, reviewer_guidelines_accepted=False, invitation_code="missing")
+        serializer = UserRegistrationSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("policies", serializer.errors)
 
     def test_password_policy_rejects_invalid_password(self):
         serializer = UserRegistrationSerializer(

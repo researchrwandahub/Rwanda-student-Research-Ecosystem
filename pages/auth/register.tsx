@@ -3,6 +3,7 @@ import api from "../../utils/api";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Layout from "../../components/Layout";
+import GoogleSignInButton from "../../components/GoogleSignInButton";
 
 const editorialRoles = new Set(["reviewer", "editor", "editor_in_chief"]);
 
@@ -21,6 +22,7 @@ export default function Register() {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [acceptances, setAcceptances] = useState({ terms: false, privacy: false, researchGuidelines: false, publicationEthics: false, reviewerGuidelines: false });
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -62,8 +64,20 @@ export default function Register() {
       return;
     }
 
+    if (!acceptances.terms || !acceptances.privacy || !acceptances.researchGuidelines) {
+      setMessage("Please read and accept the Terms of Use, Privacy Notice, and Research Community Guidelines before creating your RSRE account.");
+      setLoading(false);
+      return;
+    }
+
     if (editorialRoles.has(form.role) && !form.invitation_code.trim()) {
       setMessage("Editorial roles require an invitation code from the RSJH administration.");
+      setLoading(false);
+      return;
+    }
+
+    if (editorialRoles.has(form.role) && (!acceptances.publicationEthics || !acceptances.reviewerGuidelines)) {
+      setMessage("Editorial accounts must also accept the Publication Ethics & Editorial Policy and the applicable Reviewer/Editorial Guidelines.");
       setLoading(false);
       return;
     }
@@ -76,6 +90,8 @@ export default function Register() {
         university: form.university, department: form.department,
         discipline: form.discipline, academic_stage: form.academic_stage,
         orcid: form.orcid, biography: form.biography,
+        terms_accepted: acceptances.terms, privacy_accepted: acceptances.privacy, research_guidelines_accepted: acceptances.researchGuidelines,
+        publication_ethics_accepted: acceptances.publicationEthics, reviewer_guidelines_accepted: acceptances.reviewerGuidelines,
       };
 
       await api.post("/auth/register/", registerData);
@@ -157,8 +173,21 @@ export default function Register() {
                 <label className="grid gap-2 text-sm font-semibold text-slate-800">Short biography<textarea name="biography" value={form.biography} onChange={handleChange} rows={3} className="w-full rounded-xl border px-4 py-3 font-normal" /></label>
               </div>
 
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <h2 className="text-lg font-black text-slate-900">Before you join</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Please read these documents carefully. Your acceptance is recorded against the current policy version when your account is created.</p>
+                <div className="mt-4 grid gap-3">
+                  <label className="flex items-start gap-3 text-sm text-slate-700"><input type="checkbox" checked={acceptances.terms} onChange={e=>setAcceptances(a=>({...a,terms:e.target.checked}))} className="mt-1"/><span>I have read and agree to the <Link className="font-bold text-emerald-700 underline" href="/terms">Terms of Use</Link>.</span></label>
+                  <label className="flex items-start gap-3 text-sm text-slate-700"><input type="checkbox" checked={acceptances.privacy} onChange={e=>setAcceptances(a=>({...a,privacy:e.target.checked}))} className="mt-1"/><span>I have read the <Link className="font-bold text-emerald-700 underline" href="/privacy">Privacy Notice</Link> and understand how my information is used.</span></label>
+                  <label className="flex items-start gap-3 text-sm text-slate-700"><input type="checkbox" checked={acceptances.researchGuidelines} onChange={e=>setAcceptances(a=>({...a,researchGuidelines:e.target.checked}))} className="mt-1"/><span>I agree to follow the <Link className="font-bold text-emerald-700 underline" href="/research-guidelines">Research Community Guidelines</Link>.</span></label>
+                  {isEditorial && <><label className="flex items-start gap-3 text-sm text-slate-700"><input type="checkbox" checked={acceptances.publicationEthics} onChange={e=>setAcceptances(a=>({...a,publicationEthics:e.target.checked}))} className="mt-1"/><span>I accept the <Link className="font-bold text-emerald-700 underline" href="/publication-ethics">Publication Ethics & Editorial Policy</Link>.</span></label><label className="flex items-start gap-3 text-sm text-slate-700"><input type="checkbox" checked={acceptances.reviewerGuidelines} onChange={e=>setAcceptances(a=>({...a,reviewerGuidelines:e.target.checked}))} className="mt-1"/><span>I will follow the applicable <Link className="font-bold text-emerald-700 underline" href="/reviewer-guidelines">reviewer/editorial guidelines</Link>.</span></label></>}
+                </div>
+              </div>
+
               <button disabled={loading} className="rsjh-button-green w-full py-3 disabled:opacity-50">{loading ? "Creating account..." : "Create RSRE account"}</button>
             </form>
+
+            <GoogleSignInButton />
 
             {message && <div className="mt-6 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700 break-words">{message}</div>}
             <div className="mt-6 flex flex-wrap justify-between gap-3 text-sm"><span className="text-slate-500">Already have an account?</span><Link href="/auth/login" className="font-bold text-blue-700">Sign in</Link></div>

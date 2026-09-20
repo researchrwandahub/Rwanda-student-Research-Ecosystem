@@ -5,23 +5,14 @@ import api from "../utils/api";
 
 interface Article {
   id: number | string;
-
   title: string;
-
   abstract?: string;
-
   specialty?: string;
-
   pdf?: string;
-
   status?: string;
-
   keywords?: string;
-
   year?: number;
-
   published_date?: string;
-
   author?: {
     username?: string;
     full_name?: string;
@@ -31,19 +22,14 @@ interface Article {
 
 export default function Articles() {
   const [articles, setArticles] = useState<Article[]>([]);
-
   const [loading, setLoading] = useState(true);
-
   const [search, setSearch] = useState("");
-
   const [currentPage, setCurrentPage] = useState(1);
-
   const articlesPerPage = 6;
 
   // =====================================================
-  // LOAD PUBLISHED ARTICLES
+  // LOAD PUBLISHED ARTICLES (unchanged — real data, two-step fallback)
   // =====================================================
-
   useEffect(() => {
     async function loadArticles() {
       try {
@@ -55,544 +41,173 @@ export default function Articles() {
           const response = await api.get("/articles/?is_published=true");
           data = response.data?.results || response.data || [];
         }
-
         data = Array.isArray(data)
           ? data.filter((article) => article?.is_published || article?.status === "published")
           : [];
-
         setArticles(data);
       } catch (error) {
-        console.error(
-          "Loading articles error:",
-          error
-        );
-
+        console.error("Loading articles error:", error);
         setArticles([]);
       } finally {
         setLoading(false);
       }
     }
-
     loadArticles();
   }, []);
 
   // =====================================================
-  // SEARCH
+  // SEARCH (unchanged)
   // =====================================================
-
   const searchText = search.trim().toLowerCase();
-
-  const filteredArticles = articles.filter(
-    (article) => {
-      if (!searchText) {
-        return true;
-      }
-
-      const searchableText = [
-        article.title,
-        article.abstract,
-        article.keywords,
-        article.specialty,
-        article.author?.username,
-        article.author?.full_name,
-        article.author?.university,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(
-        searchText
-      );
-    }
-  );
+  const filteredArticles = articles.filter((article) => {
+    if (!searchText) return true;
+    const searchableText = [
+      article.title, article.abstract, article.keywords, article.specialty,
+      article.author?.username, article.author?.full_name, article.author?.university,
+    ].filter(Boolean).join(" ").toLowerCase();
+    return searchableText.includes(searchText);
+  });
 
   // =====================================================
-  // PAGINATION
+  // PAGINATION (unchanged)
   // =====================================================
-
-  const totalPages = Math.ceil(
-    filteredArticles.length /
-      articlesPerPage
-  );
-
-  const startIndex =
-    (currentPage - 1) *
-    articlesPerPage;
-
-  const endIndex =
-    startIndex + articlesPerPage;
-
+  const totalPages = Math.ceil(filteredArticles.length / articlesPerPage);
+  const startIndex = (currentPage - 1) * articlesPerPage;
+  const endIndex = startIndex + articlesPerPage;
   const currentArticles = filteredArticles.slice(startIndex, endIndex);
 
-  // =====================================================
-  // SEARCH CHANGE
-  // =====================================================
-
-  function handleSearch(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
+  function handleSearch(event: React.ChangeEvent<HTMLInputElement>) {
     setSearch(event.target.value);
-
-    // Always return to first page
-    // when a new search is made
     setCurrentPage(1);
   }
 
-  // =====================================================
-  // PAGE CHANGE
-  // =====================================================
-
   function goToPage(page: number) {
-    if (
-      page < 1 ||
-      page > totalPages
-    ) {
-      return;
-    }
-
+    if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
     <Layout>
-      <section className="page-shell py-12">
+      <section className="rsre-page py-12">
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
-        <div className="mb-8">
-
-          <h1 className="text-3xl font-bold">
-            RSJH Journal
-          </h1>
-
-          <p className="mt-3 text-gray-600">
-            Explore published research through the Rwanda Student Journal for Health.
-          </p>
-
+        {/* HEADER — editorial, not a generic page banner */}
+        <div className="rsre-page-heading">
+          <div className="rsre-kicker">RSJH</div>
+          <h1 className="rsjh-title mt-2 text-4xl md:text-5xl">Rwanda Student Journal for Health</h1>
+          <p className="mt-4">Published research from students and early-career researchers, free to read, review and submit to.</p>
         </div>
 
-        {/* =================================================
-            SEARCH
-        ================================================= */}
-
-        <div className="light-panel rounded-2xl p-5 mb-8">
-
-          <label
-            htmlFor="article-search"
-            className="block font-semibold text-gray-800 mb-2"
-          >
-            Search RSJH Journal
-          </label>
-
-          <div className="flex gap-3">
-
+        {/* SEARCH */}
+        <div className="mt-8 border-y border-graphite-200 py-5">
+          <label htmlFor="article-search" className="rsre-kpi-label">Search RSJH</label>
+          <div className="mt-2 flex gap-3">
             <input
               id="article-search"
               type="text"
               value={search}
               onChange={handleSearch}
-              placeholder="Search by title, author, topic, specialty, or keyword..."
-              className="
-                flex-1
-                border
-                border-gray-300
-                rounded-xl
-                px-4
-                py-3
-                outline-none
-                focus:border-blue-600
-                focus:ring-2
-                focus:ring-blue-100
-              "
+              placeholder="Search by title, author, topic, specialty, or keyword…"
+              className="flex-1 rounded-md border border-graphite-200 px-4 py-3 text-sm outline-none"
             />
-
             {search && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setCurrentPage(1);
-                }}
-                className="
-                  px-5
-                  py-3
-                  rounded-xl
-                  bg-gray-200
-                  hover:bg-gray-300
-                  text-gray-800
-                  font-semibold
-                "
-              >
+              <button type="button" onClick={() => { setSearch(""); setCurrentPage(1); }} className="rsre-action-secondary">
                 Clear
               </button>
             )}
-
           </div>
-
         </div>
 
-        {/* =================================================
-            LOADING
-        ================================================= */}
+        {/* LOADING */}
+        {loading && <div className="mt-8 rsre-empty">Loading articles…</div>}
 
-        {loading && (
-          <div className="mt-8 text-gray-600">
-            Loading articles...
+        {/* NO ARTICLES AT ALL */}
+        {!loading && articles.length === 0 && (
+          <div className="mt-8 rsre-empty">
+            <div>
+              <div className="font-semibold text-ink">No published articles yet.</div>
+              <p className="mt-1 text-sm">Published research articles will appear here.</p>
+            </div>
           </div>
         )}
 
-        {/* =================================================
-            NO ARTICLES AT ALL
-        ================================================= */}
-
-        {!loading &&
-          articles.length === 0 && (
-            <div className="light-panel rounded-2xl p-8 text-center">
-
-              <h2 className="text-xl font-bold">
-                No published articles yet.
-              </h2>
-
-              <p className="mt-2 text-gray-600">
-                Published research articles
-                will appear here.
-              </p>
-
-            </div>
-          )}
-
-        {/* =================================================
-            SEARCH FOUND NOTHING
-        ================================================= */}
-
-        {!loading &&
-          articles.length > 0 &&
-          filteredArticles.length === 0 && (
-            <div className="light-panel rounded-2xl p-8 text-center">
-
-              <div className="text-4xl mb-3">
-                🔎
-              </div>
-
-              <h2 className="text-xl font-bold">
-                No articles found
-              </h2>
-
-              <p className="mt-2 text-gray-600">
-                No published research articles
-                match{" "}
-                <span className="font-semibold">
-                  "{search}"
-                </span>
-                .
-              </p>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setCurrentPage(1);
-                }}
-                className="
-                  mt-5
-                  bg-blue-700
-                  hover:bg-blue-800
-                  text-white
-                  px-5
-                  py-2
-                  rounded-xl
-                  font-semibold
-                "
-              >
-                Show All Articles
+        {/* SEARCH FOUND NOTHING */}
+        {!loading && articles.length > 0 && filteredArticles.length === 0 && (
+          <div className="mt-8 rsre-empty">
+            <div>
+              <div className="font-semibold text-ink">No articles match "{search}"</div>
+              <button type="button" onClick={() => { setSearch(""); setCurrentPage(1); }} className="rsre-action-secondary mt-4">
+                Show all articles
               </button>
-
             </div>
-          )}
+          </div>
+        )}
 
-        {/* =================================================
-            SEARCH RESULT COUNT
-        ================================================= */}
+        {/* RESULT COUNT */}
+        {!loading && filteredArticles.length > 0 && (
+          <div className="mt-6 rsre-meta">
+            {search
+              ? <>Found <span className="font-semibold text-ink">{filteredArticles.length}</span> article{filteredArticles.length !== 1 ? "s" : ""} matching "{search}"</>
+              : <>Showing <span className="font-semibold text-ink">{filteredArticles.length}</span> published article{filteredArticles.length !== 1 ? "s" : ""}</>}
+          </div>
+        )}
 
-        {!loading &&
-          filteredArticles.length > 0 && (
-            <div className="mb-5 text-sm text-gray-600">
+        {/* ARTICLES — editorial list, not blog cards */}
+        {!loading && currentArticles.length > 0 && (
+          <div className="mt-2 divide-y divide-graphite-200 border-t border-graphite-200">
+            {currentArticles.map((article) => (
+              <article key={article.id} className="py-8">
+                <Link href={`/articles/${article.id}`} className="rsjh-title block text-2xl hover:text-canopy-700 md:text-3xl">
+                  {article.title}
+                </Link>
 
-              {search ? (
-                <>
-                  Found{" "}
-                  <span className="font-semibold">
-                    {filteredArticles.length}
-                  </span>{" "}
-                  article
-                  {filteredArticles.length !== 1
-                    ? "s"
-                    : ""}{" "}
-                  matching{" "}
-                  <span className="font-semibold">
-                    "{search}"
-                  </span>
-                </>
-              ) : (
-                <>
-                  Showing{" "}
-                  <span className="font-semibold">
-                    {filteredArticles.length}
-                  </span>{" "}
-                  published article
-                  {filteredArticles.length !== 1
-                    ? "s"
-                    : ""}
-                </>
-              )}
+                <div className="mt-3 rsre-meta">
+                  {article.author?.full_name || article.author?.username || "Unknown author"}
+                  {article.author?.university ? ` · ${article.author.university}` : ""}
+                  {" · "}{article.specialty || "General Medicine"}
+                  {article.year ? ` · ${article.year}` : ""}
+                </div>
 
-            </div>
-          )}
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-graphite-700">
+                  {article.abstract || "Abstract not available."}
+                </p>
 
-        {/* =================================================
-            ARTICLES
-        ================================================= */}
+                {article.keywords && <div className="mt-2 text-xs text-graphite-500">Keywords: {article.keywords}</div>}
 
-        {!loading &&
-          currentArticles.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link href={`/articles/${article.id}`} className="text-sm font-semibold text-canopy-700">Read article →</Link>
+                  {article.pdf && (
+                    <a href={article.pdf} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-graphite-600 hover:text-ink">
+                      Download PDF
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
 
-            <div className="grid gap-6">
-
-              {currentArticles.map(
-                (article) => (
-
-                  <article
-                    key={article.id}
-                    className="
-                      light-panel
-                      rounded-3xl
-                      p-6
-                    "
-                  >
-
-                    {/* TITLE */}
-
-                    <Link
-                      href={`/articles/${article.id}`}
-                      className="
-                        text-xl
-                        font-bold
-                        hover:underline
-                        text-slate-900
-                      "
-                    >
-                      {article.title}
-                    </Link>
-
-                    {/* ABSTRACT */}
-
-                    <p className="mt-3 text-gray-700">
-                      {article.abstract ||
-                        "Abstract not available."}
-                    </p>
-
-                    {/* ARTICLE INFORMATION */}
-
-                    <div className="mt-4 text-sm text-gray-600 space-y-1">
-
-                      <p>
-                        <span className="font-semibold">
-                          Author:
-                        </span>{" "}
-                        {article.author?.full_name ||
-                          article.author?.username ||
-                          "Unknown"}
-                      </p>
-
-                      <p>
-                        <span className="font-semibold">
-                          Institution:
-                        </span>{" "}
-                        {article.author?.university ||
-                          "Not provided"}
-                      </p>
-
-                      <p>
-                        <span className="font-semibold">
-                          Specialty:
-                        </span>{" "}
-                        {article.specialty ||
-                          "General Medicine"}
-                      </p>
-
-                      {article.year && (
-                        <p>
-                          <span className="font-semibold">
-                            Year:
-                          </span>{" "}
-                          {article.year}
-                        </p>
-                      )}
-
-                      {article.keywords && (
-                        <p>
-                          <span className="font-semibold">
-                            Keywords:
-                          </span>{" "}
-                          {article.keywords}
-                        </p>
-                      )}
-
-                    </div>
-
-                    {/* ACTIONS */}
-
-                    <div className="mt-6 flex gap-4 flex-wrap">
-
-                      <Link
-                        href={`/articles/${article.id}`}
-                        className="
-                          bg-green-700
-                          hover:bg-green-800
-                          text-white
-                          px-5
-                          py-2
-                          rounded-xl
-                          font-semibold
-                        "
-                      >
-                        View Article
-                      </Link>
-
-                      {article.pdf && (
-                        <a
-                          href={article.pdf}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="
-                            bg-blue-700
-                            hover:bg-blue-800
-                            text-white
-                            px-5
-                            py-2
-                            rounded-xl
-                            font-semibold
-                          "
-                        >
-                          Download PDF
-                        </a>
-                      )}
-
-                    </div>
-
-                  </article>
-
-                )
-              )}
-
-            </div>
-
-          )}
-
-        {/* =================================================
-            PAGINATION
-        ================================================= */}
-
-        {!loading &&
-          totalPages > 1 && (
-
-            <div className="mt-10 flex items-center justify-center gap-2 flex-wrap">
-
-              {/* PREVIOUS */}
-
+        {/* PAGINATION */}
+        {!loading && totalPages > 1 && (
+          <div className="mt-10 flex items-center justify-center gap-2 flex-wrap">
+            <button type="button" disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)} className="rsre-action-secondary disabled:opacity-40 disabled:cursor-not-allowed">
+              ← Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
               <button
+                key={page}
                 type="button"
-                disabled={currentPage === 1}
-                onClick={() =>
-                  goToPage(
-                    currentPage - 1
-                  )
-                }
-                className="
-                  px-4
-                  py-2
-                  rounded-xl
-                  border
-                  border-gray-300
-                  bg-white
-                  hover:bg-gray-100
-                  disabled:opacity-40
-                  disabled:cursor-not-allowed
-                "
+                onClick={() => goToPage(page)}
+                className={page === currentPage ? "rounded-md bg-ink px-4 py-2 text-sm font-semibold text-parchment" : "rsre-action-secondary"}
               >
-                ← Previous
+                {page}
               </button>
-
-              {/* PAGE NUMBERS */}
-
-              {Array.from(
-                { length: totalPages },
-                (_, index) =>
-                  index + 1
-              ).map((page) => (
-
-                <button
-                  key={page}
-                  type="button"
-                  onClick={() =>
-                    goToPage(page)
-                  }
-                  className={`
-                    px-4
-                    py-2
-                    rounded-xl
-                    font-semibold
-                    ${
-                      currentPage === page
-                        ? "bg-blue-700 text-white"
-                        : "bg-white border border-gray-300 hover:bg-gray-100"
-                    }
-                  `}
-                >
-                  {page}
-                </button>
-
-              ))}
-
-              {/* NEXT */}
-
-              <button
-                type="button"
-                disabled={
-                  currentPage === totalPages
-                }
-                onClick={() =>
-                  goToPage(
-                    currentPage + 1
-                  )
-                }
-                className="
-                  px-4
-                  py-2
-                  rounded-xl
-                  border
-                  border-gray-300
-                  bg-white
-                  hover:bg-gray-100
-                  disabled:opacity-40
-                  disabled:cursor-not-allowed
-                "
-              >
-                Next →
-              </button>
-
-            </div>
-
-          )}
-
+            ))}
+            <button type="button" disabled={currentPage === totalPages} onClick={() => goToPage(currentPage + 1)} className="rsre-action-secondary disabled:opacity-40 disabled:cursor-not-allowed">
+              Next →
+            </button>
+          </div>
+        )}
       </section>
     </Layout>
   );

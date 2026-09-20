@@ -1,6 +1,6 @@
-# Rwanda Student Journal for Health (RSJH) — Frontend
+# RSRE — Research Support and Research Ecosystem
 
-The Next.js frontend implements the RSJH student research journey.
+The Next.js frontend implements the RSRE research ecosystem. RSJH (Rwanda Student Journal for Health) is the publication workspace within that ecosystem.
 
 ## Main experience
 
@@ -14,4 +14,4 @@ The Next.js frontend implements the RSJH student research journey.
 
 ## Brand
 
-The user-facing project name is **Rwanda Student Journal for Health (RSJH)**. Internal legacy route and variable names may still use older project identifiers where changing them would break existing imports or saved URLs.
+The main user-facing platform identity is **RSRE — Research Support and Research Ecosystem**. **RSJH — Rwanda Student Journal for Health** is the journal/publication component. Internal legacy route and variable names may still use older project identifiers where changing them would break existing imports or saved URLs.

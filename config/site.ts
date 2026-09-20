@@ -1,9 +1,10 @@
 export const SITE_CONTACT = {
-  editorialEmail: "researchrwandahub@gmail.com",
+  primaryEmail: "rwandasupportresearch@gmail.com",
+  editorialEmail: "rwandaresearchhub@gmail.com",
   phone: "+250792447121",
   address: "Rwanda, East Africa",
-  publisherEmail: "researchrwandahub@gmail.com",
-  linkedin: "",
+  publisherEmail: "rwandaresearchhub@gmail.com",
+  linkedin: "https://www.linkedin.com/in/ngabonziza-patrick-26a05a3ba/",
   twitter: "",
   instagram: "",
 };

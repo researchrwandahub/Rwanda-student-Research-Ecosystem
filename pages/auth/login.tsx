@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { jwtDecode } from "jwt-decode";
 import api from "../../utils/api";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Layout from "../../components/Layout";
+import GoogleSignInButton from "../../components/GoogleSignInButton";
 
 export default function Login() {
   const router = useRouter();
@@ -16,7 +18,7 @@ export default function Login() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const roleLabel = requestedRole === "editor_in_chief" ? "Editor-in-Chief" : requestedRole === "editor" ? "Editor" : requestedRole === "reviewer" ? "Reviewer" : "RSJH member";
+  const roleLabel = requestedRole === "editor_in_chief" ? "Editor-in-Chief" : requestedRole === "editor" ? "Editor" : requestedRole === "reviewer" ? "Reviewer" : "RSRE member";
 
   // =========================================================
   // HANDLE INPUT
@@ -101,9 +103,7 @@ export default function Login() {
       let payload: any;
 
       try {
-        payload = JSON.parse(
-          atob(access.split(".")[1])
-        );
+        payload = jwtDecode(access);
       } catch (decodeError) {
         console.error(
           "Could not decode JWT:",
@@ -131,7 +131,7 @@ export default function Login() {
 
       if (requestedRole && requestedRole !== role) {
         clearAuthentication();
-        setMessage(`This account is registered as ${role.replace(/_/g, " ")}, not ${requestedRole.replace(/_/g, " ")}. Use the correct RSJH sign-in option.`);
+        setMessage(`This account is registered as ${role.replace(/_/g, " ")}, not ${requestedRole.replace(/_/g, " ")}. Use the correct RSJH editorial sign-in option.`);
         return;
       }
 
@@ -155,7 +155,7 @@ export default function Login() {
         clearAuthentication();
 
         setMessage(
-          "Your RSJH account has been suspended. Please contact an administrator."
+          "Your RSRE account has been suspended. Please contact an administrator."
         );
 
         return;
@@ -210,23 +210,13 @@ export default function Login() {
       // REDIRECT ONLY AFTER EVERYTHING IS SUCCESSFUL
       // =====================================================
 
-      if (
-        role === "administrator"
-      ) {
-        await router.replace(
-          "/dashboard/admin"
-        );
-
+      if (role === "administrator") {
+        await router.replace("/rsre-admin");
         return;
       }
 
-      if (
-        role === "author"
-      ) {
-        await router.replace(
-          "/dashboard/author"
-        );
-
+      if (role === "author" || role === "reader") {
+        await router.replace("/dashboard");
         return;
       }
 
@@ -354,7 +344,7 @@ export default function Login() {
 
           <img
             src="/logo.png"
-            alt="RSJH"
+            alt="RSRE"
             className="
               h-20
               mx-auto
@@ -374,18 +364,19 @@ export default function Login() {
               text-blue-900
             "
           >
-            RSJH
+            RSRE
           </h1>
 
           <p
             className="
               text-center
               text-gray-600
-              mb-6
+              mb-2
             "
           >
-            Rwanda Student Journal for Health
+            Research Support and Research Ecosystem
           </p>
+          <p className="mb-6 text-center text-xs text-slate-500">Sign in once for your research ecosystem account. Journal editorial access remains role-controlled within RSJH.</p>
 
           {/* =================================================
               ERROR MESSAGE
@@ -499,6 +490,8 @@ export default function Login() {
             </button>
 
           </form>
+
+          <GoogleSignInButton />
       <div className="mt-6 border-t pt-5">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Editorial access</p>
         <div className="mt-3 flex flex-wrap gap-2">

@@ -1,342 +1,113 @@
 // pages/articles/[id].tsx
-
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Layout from "../../components/Layout";
 import api from "../../utils/api";
 
-
 interface Article {
-
-  id:number;
-
-  title:string;
-
-  abstract?:string;
-
-  specialty?:string;
-
-  keywords?:string;
-
-  pdf?:string;
-
-  published_date?:string;
-  volume?:string|number;
-  issue?:string|number;
-  doi?:string;
-  article_type?:string;
-
-  author?:{
-    username?:string;
-    full_name?:string;
-    university?:string;
-  };
-  co_authors?:Array<{id:number|string; username?:string; full_name?:string; university?:string}>;
-  co_author_contributions?:Array<{user:{id:number|string; username?:string; full_name?:string; university?:string}; contribution_roles?:string[]}>;
-
+  id: number;
+  title: string;
+  abstract?: string;
+  specialty?: string;
+  keywords?: string;
+  pdf?: string;
+  published_date?: string;
+  volume?: string | number;
+  issue?: string | number;
+  doi?: string;
+  article_type?: string;
+  author?: { username?: string; full_name?: string; university?: string };
+  co_authors?: Array<{ id: number | string; username?: string; full_name?: string; university?: string }>;
+  co_author_contributions?: Array<{ user: { id: number | string; username?: string; full_name?: string; university?: string }; contribution_roles?: string[] }>;
 }
 
-
-
-export default function ArticleDetail(){
-
-
+export default function ArticleDetail() {
   const router = useRouter();
-
   const { id } = router.query;
 
+  const [article, setArticle] = useState<Article | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [article,setArticle] =
-    useState<Article | null>(null);
+  useEffect(() => {
+    if (id) loadArticle();
+  }, [id]);
 
-
-  const [loading,setLoading] =
-    useState(true);
-
-
-
-  useEffect(()=>{
-
-
-    if(id){
-
-      loadArticle();
-
-    }
-
-
-  },[id]);
-
-
-
-
-  async function loadArticle(){
-
-
-    try{
-
-
-      const response =
-        await api.get(
-          `/articles/${id}/`
-        );
-
-
-      setArticle(
-        response.data
-      );
-
-
-    }catch(error){
-
-
-      console.log(
-        "Article loading error",
-        error
-      );
-
-
-    }finally{
-
-
+  async function loadArticle() {
+    try {
+      const response = await api.get(`/articles/${id}/`);
+      setArticle(response.data);
+    } catch (error) {
+      console.log("Article loading error", error);
+    } finally {
       setLoading(false);
-
-
     }
-
-
   }
 
-
-
-
-
-  if(loading){
-
-    return(
-
-      <Layout>
-
-        <div className="p-10">
-
-          Loading article...
-
-        </div>
-
-      </Layout>
-
-    );
-
+  if (loading) {
+    return <Layout><div className="rsre-page py-16"><div className="rsre-empty">Loading article…</div></div></Layout>;
   }
 
-
-
-
-
-  if(!article){
-
-
-    return(
-
-      <Layout>
-
-        <div className="p-10">
-
-          Article not found.
-
-        </div>
-
-      </Layout>
-
-    );
-
+  if (!article) {
+    return <Layout><div className="rsre-page py-16"><div className="rsre-empty">Article not found.</div></div></Layout>;
   }
 
-
-
-
-
-  return(
-
-
+  return (
     <Layout>
+      {/* Reading-oriented width — an editorial column, not a full-bleed dashboard panel */}
+      <article className="mx-auto max-w-3xl px-5 py-14 sm:px-6">
 
-
-      <section className="page-shell py-12">
-        <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
-          <strong>RSJH is free.</strong> This publication is openly accessible. RSJH does not charge students for submission, peer review, or publication.
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rsre-badge rsre-badge-success">Published</span>
+          {article.article_type && <span className="rsre-badge">{article.article_type.replace(/_/g, " ")}</span>}
+          {article.volume && <span className="rsre-badge">Vol. {article.volume}{article.issue ? `, Issue ${article.issue}` : ""}</span>}
         </div>
 
-        <article className="light-panel rounded-3xl p-8">
+        <h1 className="rsjh-title mt-5 text-3xl md:text-4xl">{article.title}</h1>
 
+        <div className="mt-5 border-b border-graphite-200 pb-5 text-sm leading-7 text-graphite-700">
+          <p><span className="font-semibold text-ink">{article.author?.full_name || article.author?.username || "Unknown author"}</span>{article.author?.university ? ` · ${article.author.university}` : ""}</p>
+          <p className="rsre-meta mt-1">{article.specialty || "General Medicine"}{article.published_date ? ` · Published ${new Date(article.published_date).toLocaleDateString()}` : ""}{article.doi ? ` · DOI: ${article.doi}` : ""}</p>
 
+          {article.co_authors && article.co_authors.length > 0 && (
+            <div className="mt-4">
+              <div className="rsre-kpi-label">Co-authors</div>
+              <div className="mt-2 space-y-2">
+                {article.co_authors.map((co) => {
+                  const contribution = article.co_author_contributions?.find((c) => String(c.user?.id) === String(co.id));
+                  return (
+                    <div key={co.id} className="text-sm">
+                      <span className="font-semibold text-ink">{co.full_name || co.username}</span>
+                      <span className="text-graphite-500"> · {co.university || "RSJH contributor"}</span>
+                      {contribution?.contribution_roles?.length ? <div className="rsre-meta">Contributions: {contribution.contribution_roles.join(", ")}</div> : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-800">Published</span>
-            {article.article_type && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{article.article_type.replace(/_/g, " ")}</span>}
+        <div className="mt-3 rounded-md border border-canopy-100 bg-canopy-50 px-5 py-4 text-sm text-canopy-800">
+          <strong className="font-semibold">RSJH is free.</strong> This publication is openly accessible — no charge for submission, peer review or publication.
+        </div>
+
+        <h2 className="mt-8 text-xl font-semibold text-ink">Abstract</h2>
+        <p className="mt-3 leading-8 text-graphite-800">{article.abstract || "No abstract available."}</p>
+
+        {article.keywords && (
+          <div className="mt-6 text-sm">
+            <span className="font-semibold text-ink">Keywords:</span> <span className="text-graphite-600">{article.keywords}</span>
           </div>
+        )}
 
-          <h1 className="mt-4 text-3xl font-bold">{article.title}</h1>
-
-
-
-
-          <div className="mt-5 text-gray-600">
-
-
-            <p>
-
-              Author:{" "}
-
-              {
-                article.author?.full_name ||
-                article.author?.username ||
-                "Unknown"
-              }
-
-            </p>
-
-
-
-            <p>
-
-              University:{" "}
-
-              {
-                article.author?.university ||
-                "Not provided"
-              }
-
-            </p>
-
-
-
-            <p>
-
-              Specialty:{" "}
-
-              {
-                article.specialty ||
-                "General Medicine"
-              }
-
-            </p>
-
-            {article.co_authors && article.co_authors.length > 0 && (
-              <div className="mt-5">
-                <p className="font-semibold text-gray-800">Co-authors</p>
-                <div className="mt-2 space-y-2">
-                  {article.co_authors.map((co) => {
-                    const contribution = article.co_author_contributions?.find((c) => String(c.user?.id) === String(co.id));
-                    return (
-                      <div key={co.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <p className="font-semibold text-slate-900">{co.full_name || co.username}</p>
-                        <p className="text-xs text-slate-500">{co.university || "RSJH contributor"}</p>
-                        {contribution?.contribution_roles?.length ? <p className="mt-1 text-xs text-slate-600"><span className="font-semibold">Contributions:</span> {contribution.contribution_roles.join(", ")}</p> : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-
+        {article.pdf && (
+          <div className="mt-8">
+            <a href={article.pdf} target="_blank" rel="noopener noreferrer" className="rsjh-button-primary">
+              Read / download PDF
+            </a>
           </div>
-
-
-
-
-
-          <h2 className="text-xl font-bold mt-8">
-
-            Abstract
-
-          </h2>
-
-
-          <p className="mt-3">
-
-            {
-              article.abstract ||
-              "No abstract available."
-            }
-
-          </p>
-
-
-
-
-
-          {
-            article.keywords && (
-
-              <div className="mt-6">
-
-                <strong>
-                  Keywords:
-                </strong>
-
-                {" "}
-
-                {article.keywords}
-
-              </div>
-
-            )
-          }
-
-
-
-
-
-          {
-            article.pdf && (
-
-              <div className="mt-8">
-
-
-                <a
-
-                  href={article.pdf}
-
-                  target="_blank"
-
-                  rel="noopener noreferrer"
-
-                  className="
-                    bg-blue-700
-                    text-white
-                    px-6
-                    py-3
-                    rounded-xl
-                  "
-
-                >
-
-                  Read / download PDF
-
-                </a>
-
-
-              </div>
-
-            )
-          }
-
-
-
-
-        </article>
-
-
-
-      </section>
-
-
+        )}
+      </article>
     </Layout>
-
-
   );
-
-
 }

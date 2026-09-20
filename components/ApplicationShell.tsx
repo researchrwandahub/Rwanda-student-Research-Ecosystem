@@ -14,16 +14,14 @@ export default function ApplicationShell({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-parchment">
       <Header />
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
-            RSRE Workspace
-          </div>
-          <h1 className="mt-1 text-2xl font-black text-slate-950">{name}</h1>
+      <section className="border-b border-graphite-200 bg-white">
+        <div className="rsre-page py-6">
+          <div className="rsre-kicker">RSRE Workspace</div>
+          <h1 className="rsjh-title mt-2 text-3xl">{name}</h1>
           {description && (
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-graphite-600">
               {description}
             </p>
           )}

@@ -18,10 +18,10 @@ const partnerNeeds = [
 ];
 
 const milestones = [
-  ["2026 · Foundation", "RSJH was shaped around a student-first model that connects research learning, development, peer review and publication."],
-  ["2026 · Platform build", "The digital platform expanded beyond manuscript submission into research discovery, opportunities, passports and an incubator."],
-  ["2026 · Editorial workflow", "Author, reviewer and editorial workflows were brought into one platform so a manuscript can move through a traceable publication process."],
-  ["2026 · Research safeguards", "The platform keeps scientific accountability, research ethics and editorial judgement with people and appropriate review processes."],
+  ["2026 Â· Foundation", "RSRE was shaped around a research-first model, with RSJH as its student journal that connects research learning, development, peer review and publication."],
+  ["2026 Â· Platform build", "The digital platform expanded beyond manuscript submission into research discovery, opportunities, passports and an incubator."],
+  ["2026 Â· Editorial workflow", "Author, reviewer and editorial workflows were brought into one platform so a manuscript can move through a traceable publication process."],
+  ["2026 Â· Research safeguards", "The platform keeps scientific accountability, research ethics and editorial judgement with people and appropriate review processes."],
 ];
 
 function initials(name:string){ return name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase() || "RS"; }
@@ -45,7 +45,7 @@ export default function About(){
           <p className="rsjh-eyebrow text-emerald-300">ABOUT RSRE</p>
           <h1 className="mt-4 max-w-4xl text-4xl md:text-6xl font-black tracking-tight">Practical support for the full research journey.</h1>
           <p className="mt-6 max-w-3xl text-lg md:text-xl leading-8 text-slate-300">RSRE helps students and researchers learn, find evidence, develop projects, connect and move knowledge toward action in Rwanda.</p>
-          <div className="mt-8 flex flex-wrap gap-3"><Link href="/articles" className="rsjh-button-green">Explore published work →</Link><Link href="/research-hub" className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/10">Explore the Research Hub</Link></div>
+          <div className="mt-8 flex flex-wrap gap-3"><Link href="/articles" className="rsjh-button-green">Explore published work â†’</Link><Link href="/research-hub" className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/10">Explore the Research Hub</Link></div>
         </div>
       </section>
 
@@ -53,7 +53,7 @@ export default function About(){
         <div className="rsjh-page grid gap-8 lg:grid-cols-[1.2fr_.8fr] items-start">
           <div className="rsjh-card p-8 md:p-10">
             <p className="rsjh-eyebrow text-emerald-700">OUR FOUNDING STORY</p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-black">Why Rwanda Student Journal for Health was built</h2>
+            <h2 className="mt-3 text-3xl md:text-4xl font-black">Why RSRE was built</h2>
             <div className="mt-6 space-y-5 text-slate-600 leading-8">
               <p>RSRE was created around a practical problem: health students can be surrounded by research questions but still struggle to find a clear route from an idea to credible evidence, collaboration and publication.</p>
               <p>The platform therefore treats publication as one part of a longer research journey. Students can develop ideas, discover opportunities, build a research passport, collaborate, submit manuscripts, receive peer review, respond to feedback and preserve a visible scholarly record.</p>
@@ -92,24 +92,141 @@ export default function About(){
             <div><p className="rsjh-eyebrow text-violet-700">FOUNDING TEAM</p><h2 className="mt-3 text-3xl md:text-4xl font-black">The people who built the beginning.</h2><p className="mt-3 max-w-3xl text-slate-600">Founding-team records are maintained from the Administrator dashboard. Only verified names, roles and biographies should be published here.</p></div>
             <span className="rsjh-chip">{founders.length} published profile{founders.length===1?"":"s"}</span>
           </div>
-          {founders.length===0 ? <div className="mt-8 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-600">Founding-team profiles have not been published yet.</div> : <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{founders.map((f,i)=><article key={f.id} className="rsjh-card overflow-hidden"><div className="relative aspect-square bg-slate-100 flex items-center justify-center overflow-hidden">{f.photo?<img src={absoluteUrl(f.photo)} alt={f.name} className="h-full w-full object-cover" onError={(e)=>{e.currentTarget.style.display="none";}}/>:<span className="text-4xl font-black text-emerald-700">{initials(f.name)}</span>}<span className="absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-slate-700">{String(i+1).padStart(2,"0")}</span></div><div className="p-5"><h3 className="font-black text-lg">{f.name}</h3><p className="mt-1 text-xs font-bold uppercase tracking-wide text-emerald-700">{f.role}</p>{f.biography&&<p className="mt-3 text-sm leading-6 text-slate-600">{f.biography}</p>}</div></article>)}</div>}
+          {founders.length === 0 ? (
+  <div className="mt-8 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-600">
+    Founding-team profiles have not been published yet.
+  </div>
+) : (
+  <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    {founders.map((f, i) => (
+      <article key={f.id} className="rsjh-card overflow-hidden">
+        <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-slate-100">
+          {f.photo ? (
+            <>
+              <img
+                src={absoluteUrl(f.photo)}
+                alt={f.name}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  const fallback =
+                    e.currentTarget.nextElementSibling as HTMLElement | null;
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+              <span className="hidden h-full w-full items-center justify-center text-4xl font-black text-canopy-700">
+                {initials(f.name)}
+              </span>
+            </>
+          ) : (
+            <span className="text-4xl font-black text-canopy-700">
+              {initials(f.name)}
+            </span>
+          )}
+
+          <span className="absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-slate-700">
+            {String(i + 1).padStart(2, "0")}
+          </span>
+        </div>
+
+        <div className="p-5">
+          <h3 className="text-lg font-black">{f.name}</h3>
+          <p className="mt-1 text-xs font-bold uppercase tracking-wide text-emerald-700">
+            {f.role}
+          </p>
+
+          {f.biography && (
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              {f.biography}
+            </p>
+          )}
+        </div>
+      </article>
+    ))}
+  </div>
+)}
         </div>
       </section>
 
       <section className="bg-slate-950 py-16 text-white">
         <div className="rsjh-page grid gap-10 lg:grid-cols-[.9fr_1.1fr] items-center">
           <div><p className="rsjh-eyebrow text-emerald-300">TRUST & PURPOSE</p><h2 className="mt-3 text-3xl md:text-4xl font-black">A practical ecosystem, not an official institutional system.</h2><p className="mt-5 text-slate-300 leading-8">RSRE supports research learning, discovery, projects and publication workflows. Scientific scope, reviewer selection, ethics decisions and publication decisions remain subject to the responsible people and processes involved.</p></div>
-          <div className="rounded-3xl bg-white/5 p-7 ring-1 ring-white/10"><div className="grid gap-4 sm:grid-cols-2"><div><p className="text-xs uppercase tracking-widest text-slate-400">Platform</p><p className="mt-2 font-black">Research Support and Research Ecosystem</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Editorial office</p><p className="mt-2 font-black">researchrwandahub@gmail.com</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Regional focus</p><p className="mt-2 font-black">Rwanda and East Africa</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Contact</p><p className="mt-2 font-black">+250 792 447 121</p></div></div></div>
+          <div className="rounded-3xl bg-white/5 p-7 ring-1 ring-white/10"><div className="grid gap-4 sm:grid-cols-2"><div><p className="text-xs uppercase tracking-widest text-slate-400">Platform</p><p className="mt-2 font-black">Research Support and Research Ecosystem</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Editorial office</p><p className="mt-2 font-black">rwandaresearchhub@gmail.com</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Regional focus</p><p className="mt-2 font-black">Rwanda and East Africa</p></div><div><p className="text-xs uppercase tracking-widest text-slate-400">Contact</p><p className="mt-2 font-black">+250 792 447 121</p></div></div></div>
         </div>
       </section>
 
       <section className="rsjh-section" id="partners">
         <div className="rsjh-page">
           <p className="rsjh-eyebrow text-emerald-700">PARTNERS & SUPPORTERS</p>
-          <h2 className="mt-3 text-3xl md:text-4xl font-black">A partner ecosystem, not a logo wall.</h2>
-          <p className="mt-4 max-w-3xl text-slate-600 leading-7">Partner records shown here are managed by authorised administrators. Logos, descriptions and official websites come from the partner records rather than hard-coded demo cards.</p>
+          <h2 className="mt-3 text-3xl md:text-4xl font-black">A partner ecosystem </h2>
+          <p className="mt-4 max-w-3xl text-slate-600 leading-7"> Descriptions and official websites come from the partner records.</p>
           <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">{partnerNeeds.map(([title,desc],i)=><div key={title} className="rsjh-card p-6"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 font-black text-emerald-700">0{i+1}</div><h3 className="mt-5 text-xl font-black">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{desc}</p></div>)}</div>
-          {partners.length>0&&<div className="mt-10"><h3 className="text-2xl font-black">Current partners and supporters</h3><div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{partners.map(p=><a href={p.website||undefined} target={p.website?'_blank':undefined} rel={p.website?'noreferrer':undefined} key={p.id} className="rsjh-card p-5 hover:-translate-y-0.5 transition"><div className="h-20 flex items-center justify-center rounded-2xl bg-slate-50">{p.logo?<img src={absoluteUrl(p.logo)} alt={p.name} className="max-h-16 max-w-full object-contain" onError={(e)=>{e.currentTarget.style.display="none";}}/>:<span className="text-2xl font-black text-slate-300">{initials(p.name)}</span>}</div><h4 className="mt-4 font-black">{p.name}</h4>{p.country&&<p className="mt-1 text-xs uppercase tracking-wide text-emerald-700">{p.country}</p>}{p.description&&<p className="mt-2 text-sm text-slate-600">{p.description}</p>}{p.website&&<span className="mt-3 inline-block text-sm font-bold text-emerald-700">Official website →</span>}</a>)}</div></div>}
+          {partners.length > 0 && (
+            <div className="mt-10">
+              <h3 className="text-2xl font-black">
+                Current partners and supporters
+              </h3>
+
+              <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {partners.map((p) => (
+                  <a
+                    href={p.website || undefined}
+                    target={p.website ? "_blank" : undefined}
+                    rel={p.website ? "noreferrer" : undefined}
+                    key={p.id}
+                    className="rsjh-card p-5 transition hover:-translate-y-0.5"
+                  >
+                    <div className="flex h-20 items-center justify-center rounded-2xl bg-slate-50">
+                      {p.logo ? (
+                        <>
+                          <img
+                            src={absoluteUrl(p.logo)}
+                            alt={p.name}
+                            className="max-h-16 max-w-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              const fallback =
+                                e.currentTarget.nextElementSibling as HTMLElement | null;
+                              if (fallback) {
+                                fallback.style.display = "inline";
+                              }
+                            }}
+                          />
+                          <span className="hidden text-2xl font-black text-graphite-300">
+                            {initials(p.name)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-2xl font-black text-graphite-300">
+                          {initials(p.name)}
+                        </span>
+                      )}
+                    </div>
+
+                    <h4 className="mt-4 font-black">{p.name}</h4>
+
+                    {p.country && (
+                      <p className="mt-1 text-xs uppercase tracking-wide text-emerald-700">
+                        {p.country}
+                      </p>
+                    )}
+
+                    {p.description && (
+                      <p className="mt-2 text-sm text-slate-600">
+                        {p.description}
+                      </p>
+                    )}
+
+                    {p.website && (
+                      <span className="mt-3 inline-block text-sm font-bold text-emerald-700">
+                        Official website ?
+                      </span>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </main>

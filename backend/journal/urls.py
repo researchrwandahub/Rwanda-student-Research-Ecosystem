@@ -32,7 +32,7 @@ from .views import (
     MedTechAIResearchSearchView, MedTechAIChatView,
     EditorialDecisionViewSet,
     AIUsageViewSet,
-    RSJHAIAssistView, VerifyEmailView, RequestPasswordResetView, ConfirmPasswordResetView, ResearchPassportView, PassportEvidenceView, PassportEvidenceDetailView, ResearchIdeaViewSet, ResearchProjectViewSet, ResearchOpportunityViewSet, EditorialBoardViewSet, StudentGiftView, AdminGiftPaymentConfirmView, ResearchSandboxWorkspaceViewSet,
+    RSJHAIAssistView, VerifyEmailView, GoogleAuthView, RequestPasswordResetView, ConfirmPasswordResetView, ResearchPassportView, PublicResearchPassportView, PassportEvidenceView, PassportEvidenceDetailView, ResearchIdeaViewSet, ResearchProjectViewSet, ResearchOpportunityViewSet, EditorialBoardViewSet, StudentGiftView, AdminGiftPaymentConfirmView, ResearchSandboxWorkspaceViewSet,
 )
 
 
@@ -148,9 +148,11 @@ urlpatterns = [
     ),
 
     path("auth/verify-email/",VerifyEmailView.as_view()),
+    path("auth/google/", GoogleAuthView.as_view(), name="google-auth"),
     path("auth/password-reset/",RequestPasswordResetView.as_view()),
     path("auth/password-reset/confirm/",ConfirmPasswordResetView.as_view()),
     path("research-passport/",ResearchPassportView.as_view()),
+    path("research-passport/public/<str:username>/",PublicResearchPassportView.as_view()),
     path("research-passport/evidence/",PassportEvidenceView.as_view()),
     path("research-passport/evidence/<int:pk>/",PassportEvidenceDetailView.as_view()),
     path("research-discovery/", ResearchDiscoveryView.as_view()),

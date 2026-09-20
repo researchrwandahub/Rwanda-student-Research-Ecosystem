@@ -1,20 +1,15 @@
 import {useEffect,useMemo,useState} from 'react';
 import ApplicationShell from '../components/ApplicationShell';
+import api from '../utils/api';
 
-const API=process.env.NEXT_PUBLIC_API_URL||process.env.NEXT_PUBLIC_API_BASE||'/api/rsre';
-function auth(): Record<string, string> {
-  if (typeof window === 'undefined') return {}
-  const t = localStorage.getItem('access') || localStorage.getItem('token')
-  return t ? { Authorization: 'Bearer ' + t } : {}
-}
 const purposes=[['research_project','Project collaborator'],['mentorship','Mentor / mentee'],['coauthor','Co-author'],['methods','Methods / statistics'],['peer_learning','Peer learning']];
 
 export default function Collaboration(){
  const [data,setData]=useState({people:[],incoming:[],outgoing:[]}); const [q,setQ]=useState(''); const [purpose,setPurpose]=useState('research_project'); const [loading,setLoading]=useState(true); const [busy,setBusy]=useState<number|null>(null); const [message,setMessage]=useState(''); const [selected,setSelected]=useState<any|null>(null);
- async function load(term=''){setLoading(true); try{const r=await fetch(`${API}/collaboration/?q=${encodeURIComponent(term)}`,{headers:{...auth()}}); const j=await r.json(); setData({people:j.people||[],incoming:j.incoming||[],outgoing:j.outgoing||[]});} finally{setLoading(false)}}
+ async function load(term=''){setLoading(true); setMessage(''); try{const r=await api.get('/rsre/collaboration/',{params:{q:term}}); const j=r.data; setData({people:j.people||[],incoming:j.incoming||[],outgoing:j.outgoing||[]});}catch(e:any){setData({people:[],incoming:[],outgoing:[]}); setMessage(e?.response?.status===401?'Sign in to search the Collaboration Network and send requests.':'The Collaboration Network is temporarily unavailable. Please try again.')} finally{setLoading(false)}}
  useEffect(()=>{load()},[]);
- async function request(id:number){setBusy(id); setMessage(''); try{const r=await fetch(`${API}/collaboration/`,{method:'POST',headers:{'Content-Type':'application/json',...auth()},body:JSON.stringify({recipient:id,purpose,message:`I would like to connect for ${purposes.find(([v])=>v===purpose)?.[1].toLowerCase()||'research collaboration'} through RSRE.`})}); const j=await r.json(); if(!r.ok) throw new Error(j.detail||'Unable to send request'); setMessage('Request sent.'); setSelected(null); load(q);}catch(e:any){setMessage(e.message)}finally{setBusy(null)}}
- async function action(id:number,action:string){await fetch(`${API}/collaboration/requests/${id}/`,{method:'POST',headers:{'Content-Type':'application/json',...auth()},body:JSON.stringify({action})}); load(q)}
+ async function request(id:number){setBusy(id); setMessage(''); try{await api.post('/rsre/collaboration/',{recipient:id,purpose,message:`I would like to connect for ${purposes.find(([v])=>v===purpose)?.[1].toLowerCase()||'research collaboration'} through RSRE.`}); setMessage('Request sent.'); setSelected(null); load(q);}catch(e:any){setMessage(e?.response?.data?.detail||'Unable to send request.')}finally{setBusy(null)}}
+ async function action(id:number,action:string){try{await api.post(`/rsre/collaboration/requests/${id}/`,{action}); load(q)}catch(e:any){setMessage(e?.response?.data?.detail||'Unable to update this request.')}}
  const connectedCount=data.people.filter((p:any)=>p.connected).length;
  return <ApplicationShell name="Collaboration Network" description="Find the right people for a specific research need." nav={[["/collaboration","Network"],["/research-incubator","Projects"],["/research-passport","Profiles"]]}>
   <main className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">

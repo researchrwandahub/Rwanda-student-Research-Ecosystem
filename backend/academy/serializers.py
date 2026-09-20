@@ -3,6 +3,7 @@ from .models import (
     Level, Module, Lesson, Quiz, Question, Choice,
     LevelCertificate, ModuleCertificate, PathwayCertificate, SpecialistPathway, CertificateSettings, AcademyCourse, Assignment, RubricCriterion, AssignmentSubmission, RubricScore,
 )
+from .content_quality import lesson_content_quality
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -28,9 +29,13 @@ class QuizSerializer(serializers.ModelSerializer):
 
 
 class LessonSerializer(serializers.ModelSerializer):
+    content_quality = serializers.SerializerMethodField()
     class Meta:
         model = Lesson
-        fields = ["id", "order", "title", "lesson_type", "body", "video_url", "resource_urls", "estimated_minutes", "required"]
+        fields = ["id", "order", "title", "lesson_type", "body", "video_url", "resource_urls", "estimated_minutes", "required", "content_quality"]
+
+    def get_content_quality(self, obj):
+        return lesson_content_quality(obj)
 
 
 class ModuleSerializer(serializers.ModelSerializer):

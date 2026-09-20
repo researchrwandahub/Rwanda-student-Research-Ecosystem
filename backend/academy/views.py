@@ -17,6 +17,7 @@ from .serializers import (
     LevelSerializer, PathwaySerializer, ModuleSerializer,
     CertificateSerializer, ModuleCertificateSerializer, PathwayCertificateSerializer, CourseEnrollmentSerializer, LearningRecordSerializer, CourseAnnouncementSerializer,
 )
+from .content_quality import lesson_content_quality, CORE_MIN_CHARS, ACTIVITY_MIN_CHARS
 from .services import notify_academy, issue_module_certificate, issue_level_certificate, issue_pathway_certificate, record_learning_event, sync_course_enrollment
 
 
@@ -210,8 +211,23 @@ class ModuleDetailView(APIView):
         if not unlocked:
             return Response({"detail": "Complete the required previous learning before accessing this module."}, status=403)
         payload = ModuleSerializer(module).data
+        progress_map = {}
+        if request.user.is_authenticated:
+            progress_map = {
+                lp.lesson_id: True
+                for lp in LessonProgress.objects.filter(user=request.user, lesson__module=module, completed_at__isnull=False)
+            }
+        for lesson_row in payload.get("lessons", []):
+            lesson_row["completed"] = bool(progress_map.get(lesson_row["id"]))
         payload["completed"] = module_completed(request.user, module) if request.user.is_authenticated else False
         payload["quiz_required"] = bool(getattr(module, "quiz", None))
+        payload["required_lesson_count"] = module.lessons.filter(active=True, required=True).count()
+        payload["completed_lesson_count"] = len([x for x in payload.get("lessons", []) if x.get("required") and x.get("completed")])
+        payload["estimated_learning_minutes"] = sum(x.get("estimated_minutes") or 0 for x in payload.get("lessons", []) if x.get("active", True))
+        payload["content_quality"] = {
+            "needs_development": sum(1 for lesson in module.lessons.filter(active=True) if lesson_content_quality(lesson)["level"] == "needs-development"),
+            "lessons_reviewed": module.lessons.filter(active=True).count(),
+        }
         payload["resources"] = [
             {
                 "id": r.id, "title": r.title, "resource_type": r.resource_type,
@@ -268,7 +284,7 @@ class CompleteLessonView(APIView):
                     if next_level:
                         next_module = next_level.modules.filter(active=True, required=True, pathway__isnull=True).order_by("order").first()
             if next_module:
-                notify_academy(request.user, "Research Academy â€” next module unlocked", f"You completed {lesson.module.title}. The next module, {next_module.title}, is now available.", f"/research-academy/module/{next_module.id}", "Continue learning")
+                notify_academy(request.user, "Research Academy — next module unlocked", f"You completed {lesson.module.title}. The next module, {next_module.title}, is now available.", f"/research-academy/module/{next_module.id}", "Continue learning")
         certs = issue_completed_credentials(request.user)
         return Response({"lesson_completed": True, "module_completed": module_done, "certificates": [getattr(c, "certificate_id", "") for c in certs]})
 
@@ -285,17 +301,31 @@ class SubmitQuizView(APIView):
         if not module_unlocked(request.user, quiz.module):
             return Response({"detail": "This module is locked."}, status=403)
 
+        required_lessons = list(quiz.module.lessons.filter(active=True, required=True))
+        incomplete_lessons = [lesson.id for lesson in required_lessons if not lesson_complete(request.user, lesson)]
+        if incomplete_lessons:
+            return Response({
+                "detail": "Complete all required lessons before submitting the module assessment.",
+                "incomplete_lessons": incomplete_lessons,
+            }, status=400)
+
         answers = request.data.get("answers") or {}
         questions = list(quiz.questions.all())
-        selected_ids = {str(k) for k in answers.keys()}
-        selected = [q for q in questions if str(q.id) in selected_ids]
+        if not questions:
+            return Response({"detail": "This assessment has no questions yet."}, status=400)
 
-        if not selected:
-            return Response({"detail": "Please answer at least one question."}, status=400)
+        submitted_ids = {str(k) for k in answers.keys()}
+        required_ids = {str(q.id) for q in questions}
+        missing_ids = sorted(required_ids - submitted_ids)
+        if missing_ids:
+            return Response({
+                "detail": "Please answer every question before submitting the assessment.",
+                "missing_questions": missing_ids,
+            }, status=400)
 
         correct = 0
         per_question = []
-        for q in selected:
+        for q in questions:
             expected = {str(c.id) for c in q.choices.filter(is_correct=True)}
             supplied = answers.get(str(q.id), answers.get(q.id, []))
             if not isinstance(supplied, list):
@@ -305,7 +335,7 @@ class SubmitQuizView(APIView):
             correct += int(is_correct)
             per_question.append({"question": q.id, "correct": is_correct, "explanation": q.explanation})
 
-        score = round(100 * correct / len(selected), 2)
+        score = round(100 * correct / len(questions), 2)
         passed = score >= quiz.pass_mark
         QuizAttempt.objects.create(user=request.user, quiz=quiz, score=score, passed=passed, answers=answers)
         if passed:
@@ -313,7 +343,7 @@ class SubmitQuizView(APIView):
             notify_academy(request.user, "Research Academy - quiz passed", f"You passed {quiz.title} with {score:.0f}%. Your next required learning is now available.", "/research-academy", "Continue learning")
         else:
             notify_academy(request.user, "Research Academy - quiz attempt", f"You scored {score:.0f}% on {quiz.title}. The required pass mark is {quiz.pass_mark}%. Review the lesson material and try again.", f"/research-academy/module/{quiz.module.id}", "Review module")
-        return Response({"score": float(score), "passed": passed, "pass_mark": quiz.pass_mark, "results": per_question, "questions_answered": len(selected)})
+        return Response({"score": float(score), "passed": passed, "pass_mark": quiz.pass_mark, "results": per_question, "questions_answered": len(questions)})
 
 class CohortListView(APIView):
     permission_classes=[IsAuthenticated]
@@ -348,7 +378,7 @@ class CohortDetailView(APIView):
                 return Response({"detail":"Cohort is full."},status=409)
             member,_=CourseCohortMember.objects.update_or_create(cohort=cohort,user=request.user,defaults={"status":"active"})
             from .services import notify_academy
-            notify_academy(request.user, f"RSRE cohort â€” {cohort.name}", f"You joined {cohort.name}. Use the cohort WhatsApp community when available for peer discussion and announcements.", "/research-academy/dashboard", "Open Academy dashboard")
+            notify_academy(request.user, f"RSRE cohort — {cohort.name}", f"You joined {cohort.name}. Use the cohort WhatsApp community when available for peer discussion and announcements.", "/research-academy/dashboard", "Open Academy dashboard")
             return Response({"joined":True,"cohort_id":cohort.id,"status":member.status,"whatsapp_invite":cohort.whatsapp_community.invite_url if cohort.whatsapp_community_id else ""})
         if action == "leave":
             CourseCohortMember.objects.filter(cohort=cohort,user=request.user).update(status="left")
@@ -428,7 +458,7 @@ class LabSubmitView(APIView):
         if lab.attempts_allowed and attempt>lab.attempts_allowed:
             return Response({"detail":"No attempts remaining."},status=409)
         sub=LabSubmission.objects.create(user=request.user,lab=lab,response=request.data.get("response","") )
-        notify_academy(request.user,"Research Academy â€” practical lab submitted",f"Your submission for {lab.title} was received.",f"/research-academy/module/{lab.module_id}","Open module")
+        notify_academy(request.user,"Research Academy — practical lab submitted",f"Your submission for {lab.title} was received.",f"/research-academy/module/{lab.module_id}","Open module")
         return Response({"id":sub.id,"status":sub.status,"submitted_at":sub.submitted_at},status=201)
 
 
@@ -440,10 +470,10 @@ class AdminLabGradeView(APIView):
         score=float(request.data.get("score",0))
         sub.score=score; sub.feedback=request.data.get("feedback",""); sub.status="graded"; sub.graded_by=request.user; sub.graded_at=timezone.now(); sub.save(update_fields=["score","feedback","status","graded_by","graded_at"])
         if score>=sub.lab.pass_mark:
-            notify_academy(sub.user,"Research Academy â€” lab passed",f"You passed {sub.lab.title} with {score:.0f}%.",f"/research-academy/module/{sub.lab.module_id}","Continue learning")
+            notify_academy(sub.user,"Research Academy — lab passed",f"You passed {sub.lab.title} with {score:.0f}%.",f"/research-academy/module/{sub.lab.module_id}","Continue learning")
             issue_completed_credentials(sub.user)
         else:
-            notify_academy(sub.user,"Research Academy â€” lab feedback",f"Your {sub.lab.title} lab received {score:.0f}%. Review the feedback and try again if allowed.",f"/research-academy/module/{sub.lab.module_id}","View feedback")
+            notify_academy(sub.user,"Research Academy — lab feedback",f"Your {sub.lab.title} lab received {score:.0f}%. Review the feedback and try again if allowed.",f"/research-academy/module/{sub.lab.module_id}","View feedback")
         issue_completed_credentials(sub.user)
         return Response({"id":sub.id,"score":float(sub.score),"status":sub.status,"feedback":sub.feedback})
 
@@ -498,7 +528,7 @@ class AssignmentSubmitView(APIView):
             assignment=assignment, user=request.user, response_text=str(request.data.get("response_text", "")),
             file_url=request.data.get("file_url", ""), external_url=request.data.get("external_url", ""), attempt_number=attempt
         )
-        notify_academy(request.user, "Research Academy â€” assignment submitted", f"Your submission for {assignment.title} was received and is awaiting grading.", f"/research-academy/module/{assignment.module_id}", "Open module")
+        notify_academy(request.user, "Research Academy — assignment submitted", f"Your submission for {assignment.title} was received and is awaiting grading.", f"/research-academy/module/{assignment.module_id}", "Open module")
         return Response(AssignmentSubmissionSerializer(submission).data, status=201)
 
 
@@ -537,10 +567,10 @@ class AdminAssignmentGradeView(APIView):
         pct = round((total / max_total) * 100, 2) if max_total else 0
         submission.score=pct; submission.status="graded"; submission.feedback=request.data.get("feedback",""); submission.graded_by=request.user; submission.graded_at=timezone.now(); submission.save(update_fields=["score","status","feedback","graded_by","graded_at"])
         if pct >= submission.assignment.pass_mark:
-            notify_academy(submission.user, "Research Academy â€” assignment graded", f"You passed {submission.assignment.title} with {pct:.0f}%.", f"/research-academy/module/{submission.assignment.module_id}", "Continue learning")
+            notify_academy(submission.user, "Research Academy — assignment graded", f"You passed {submission.assignment.title} with {pct:.0f}%.", f"/research-academy/module/{submission.assignment.module_id}", "Continue learning")
             issue_completed_credentials(submission.user)
         else:
-            notify_academy(submission.user, "Research Academy â€” feedback available", f"Your {submission.assignment.title} submission received {pct:.0f}%. Review the feedback and resubmit if permitted.", f"/research-academy/module/{submission.assignment.module_id}", "View feedback")
+            notify_academy(submission.user, "Research Academy — feedback available", f"Your {submission.assignment.title} submission received {pct:.0f}%. Review the feedback and resubmit if permitted.", f"/research-academy/module/{submission.assignment.module_id}", "View feedback")
         issue_completed_credentials(submission.user)
         return Response(AssignmentSubmissionSerializer(submission).data)
 
@@ -583,7 +613,7 @@ class CourseEnrollmentView(APIView):
         obj,_=CourseEnrollment.objects.get_or_create(user=request.user,course=course)
         if obj.status=="waitlisted": obj.status="active"; obj.save(update_fields=["status"])
         record_learning_event(request.user,"enrolled",course.title,"course",course.id,{"course_code":course.code})
-        notify_academy(request.user,"Research Academy â€” enrolled",f"You are enrolled in {course.title}.",f"/research-academy/course/{course.id}","Open course")
+        notify_academy(request.user,"Research Academy — enrolled",f"You are enrolled in {course.title}.",f"/research-academy/course/{course.id}","Open course")
         return Response(CourseEnrollmentSerializer(obj).data,status=201)
 
     def get(self, request):
@@ -655,7 +685,7 @@ class AcademyAdminCoursesView(APIView):
                     "id": m.id, "order": m.order, "title": m.title, "summary": m.summary,
                     "estimated_minutes": m.estimated_minutes, "required": m.required, "active": m.active,
                     "lesson_count": m.lessons.filter(active=True).count(),
-                    "lessons": list(m.lessons.order_by("order").values("id", "order", "title", "lesson_type", "body", "video_url", "resource_urls", "estimated_minutes", "required", "active")),
+                    "lessons": [{**row, "content_quality": lesson_content_quality(m.lessons.get(pk=row["id"]))} for row in m.lessons.order_by("order").values("id", "order", "title", "lesson_type", "body", "video_url", "resource_urls", "estimated_minutes", "required", "active")],
                     "resources": [{"id":r.id,"lesson_id":r.lesson_id,"title":r.title,"resource_type":r.resource_type,"url":r.url,"description":r.description,"source":r.source,"required":r.required,"order":r.order,"active":r.active} for r in LessonResource.objects.filter(lesson__module=m).order_by("lesson__order","order","title")],
                     "practice_labs": list(m.practice_labs.filter(active=True).values("id","title","description")),
                     "discussion_posts": m.discussion_posts.filter(active=True).count(),
@@ -676,7 +706,7 @@ class AcademyAdminCoursesView(APIView):
             "modules": [{
                 "id": m.id, "order": m.order, "title": m.title, "summary": m.summary,
                 "estimated_minutes": m.estimated_minutes, "required": m.required, "active": m.active,
-                "lessons": list(m.lessons.order_by("order").values("id", "order", "title", "lesson_type", "body", "video_url", "resource_urls", "estimated_minutes", "required", "active")),
+                "lessons": [{**row, "content_quality": lesson_content_quality(m.lessons.get(pk=row["id"]))} for row in m.lessons.order_by("order").values("id", "order", "title", "lesson_type", "body", "video_url", "resource_urls", "estimated_minutes", "required", "active")],
             } for m in p.modules.filter(active=True).order_by("order")],
         } for p in SpecialistPathway.objects.all().order_by("id")]
         return Response({"levels": rows, "pathways": pathways})
@@ -773,12 +803,17 @@ class AcademyAdminLessonView(APIView):
         if not admin_required(request):
             return Response({"detail": "Academy administrator access required."}, status=403)
         module = get_object_or_404(Module, pk=request.data.get("module_id"))
+        lesson_type = request.data.get("lesson_type", "text")
+        body = (request.data.get("body") or "").strip()
+        minimum = ACTIVITY_MIN_CHARS if lesson_type == "activity" else CORE_MIN_CHARS
+        if bool(request.data.get("active", True)) and len(body) < minimum:
+            return Response({"detail": f"Active {lesson_type} lessons should contain at least {minimum} characters of teaching/practical content. Add substance before publishing it."}, status=400)
         lesson = Lesson.objects.create(
             module=module,
             order=int(request.data.get("order", 1)),
             title=request.data.get("title", "New Lesson"),
-            lesson_type=request.data.get("lesson_type", "text"),
-            body=request.data.get("body", ""),
+            lesson_type=lesson_type,
+            body=body,
             video_url=request.data.get("video_url", ""),
             resource_urls=request.data.get("resource_urls", []),
             estimated_minutes=int(request.data.get("estimated_minutes", 15)),
@@ -791,6 +826,12 @@ class AcademyAdminLessonView(APIView):
         if not admin_required(request):
             return Response({"detail": "Academy administrator access required."}, status=403)
         lesson = get_object_or_404(Lesson, pk=pk)
+        proposed_type = request.data.get("lesson_type", lesson.lesson_type)
+        proposed_body = (request.data.get("body", lesson.body) or "").strip()
+        proposed_active = bool(request.data.get("active", lesson.active))
+        minimum = ACTIVITY_MIN_CHARS if proposed_type == "activity" else CORE_MIN_CHARS
+        if proposed_active and len(proposed_body) < minimum:
+            return Response({"detail": f"Active {proposed_type} lessons should contain at least {minimum} characters of teaching/practical content. Add substance before publishing it."}, status=400)
         for field in ("order", "title", "lesson_type", "body", "video_url", "resource_urls", "estimated_minutes", "required", "active"):
             if field in request.data:
                 setattr(lesson, field, request.data[field])
@@ -908,7 +949,7 @@ class AcademyAdminQuestionReplyView(APIView):
         q.answered_by = request.user
         q.answered_at = timezone.now()
         q.save(update_fields=["answer", "status", "answered_by", "answered_at"])
-        notify_academy(q.user, "Research Academy â€” your question was answered", f"Your Academy question '{q.subject}' has been answered. Open the Academy support area to view the response.", "/research-academy", "Open Research Academy")
+        notify_academy(q.user, "Research Academy — your question was answered", f"Your Academy question '{q.subject}' has been answered. Open the Academy support area to view the response.", "/research-academy", "Open Research Academy")
         return Response({"id": q.id, "status": q.status})
 
 
@@ -997,7 +1038,7 @@ class DiagnosticAssessmentView(APIView):
         score=round(100*correct/total,2)
         recommended=1 if score < 60 else 2 if score < 75 else 3 if score < 90 else 4
         DiagnosticAttempt.objects.create(user=request.user,assessment=a,score=score,recommended_level=recommended,answers=answers)
-        notify_academy(request.user,'Research Academy â€” entry assessment result',f'Your diagnostic assessment score is {score:.0f}%. Recommended starting level: {recommended}.','/research-academy','View Academy')
+        notify_academy(request.user,'Research Academy — entry assessment result',f'Your diagnostic assessment score is {score:.0f}%. Recommended starting level: {recommended}.','/research-academy','View Academy')
         return Response({'score':score,'recommended_level':recommended,'pass_mark':a.pass_mark})
 
 

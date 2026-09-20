@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 import re
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -21,7 +21,7 @@ from .models import (
     ResearchOpportunity,
     EditorialBoardMember,
     ResearchPassport, PassportEvidence, StudentGift,
-    Partner, FoundingMember, ResearchSandboxWorkspace, ResearchSandboxNote, ResearchSandboxDataset,
+    Partner, FoundingMember, ResearchSandboxWorkspace, ResearchSandboxRun, ResearchSandboxNote, ResearchSandboxDataset, PolicyAcceptance,
 )
 
 
@@ -137,7 +137,22 @@ class UserSerializer(serializers.ModelSerializer):
 # REGISTRATION
 # =========================
 
+CURRENT_POLICY_VERSIONS = {
+    "terms": "2026-09-v1",
+    "privacy": "2026-09-v1",
+    "research_guidelines": "2026-09-v1",
+    "publication_ethics": "2026-09-v1",
+    "reviewer_guidelines": "2026-09-v1",
+}
+
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
+
+    terms_accepted = serializers.BooleanField(write_only=True, required=True)
+    privacy_accepted = serializers.BooleanField(write_only=True, required=True)
+    research_guidelines_accepted = serializers.BooleanField(write_only=True, required=True)
+    publication_ethics_accepted = serializers.BooleanField(write_only=True, required=False, default=False)
+    reviewer_guidelines_accepted = serializers.BooleanField(write_only=True, required=False, default=False)
 
     first_name = serializers.CharField(required=True, allow_blank=False)
     last_name = serializers.CharField(required=True, allow_blank=False)
@@ -169,6 +184,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "orcid",
             "biography",
             "invitation_code",
+            "terms_accepted",
+            "privacy_accepted",
+            "research_guidelines_accepted",
+            "publication_ethics_accepted",
+            "reviewer_guidelines_accepted",
         ]
     def validate(self, attrs):
         username = attrs.get("username", "").strip()
@@ -197,6 +217,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if role not in allowed:
             raise serializers.ValidationError({"role": "Invalid registration role."})
 
+        required_acceptances = {
+            "terms_accepted": attrs.get("terms_accepted"),
+            "privacy_accepted": attrs.get("privacy_accepted"),
+            "research_guidelines_accepted": attrs.get("research_guidelines_accepted"),
+        }
+        missing = [name for name, accepted in required_acceptances.items() if accepted is not True]
+        if missing:
+            raise serializers.ValidationError({"policies": "You must accept the Terms of Use, Privacy Notice, and Research Community Guidelines before creating an RSRE account."})
+        if role in {"reviewer", "editor", "editor_in_chief"}:
+            if attrs.get("publication_ethics_accepted") is not True or attrs.get("reviewer_guidelines_accepted") is not True:
+                raise serializers.ValidationError({"policies": "Editorial accounts must accept the Publication Ethics & Editorial Policy and the applicable Reviewer / Editorial Guidelines."})
+
         if User.objects.filter(username__iexact=username).exists():
             raise serializers.ValidationError({"username": "A user with that username already exists."})
         if email and User.objects.filter(email__iexact=email).exists():
@@ -224,12 +256,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
 
         code = validated_data.pop(
             "invitation_code",
             None
         )
+        terms_accepted = validated_data.pop("terms_accepted", False)
+        privacy_accepted = validated_data.pop("privacy_accepted", False)
+        research_guidelines_accepted = validated_data.pop("research_guidelines_accepted", False)
+        publication_ethics_accepted = validated_data.pop("publication_ethics_accepted", False)
+        reviewer_guidelines_accepted = validated_data.pop("reviewer_guidelines_accepted", False)
 
         user = User.objects.create_user(
             username=validated_data["username"],
@@ -261,6 +299,21 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                     "board_role": "Editor-in-Chief" if user.role == "editor_in_chief" else "Editor",
                 },
             )
+
+        accepted = [
+            ("terms", CURRENT_POLICY_VERSIONS["terms"], terms_accepted),
+            ("privacy", CURRENT_POLICY_VERSIONS["privacy"], privacy_accepted),
+            ("research_guidelines", CURRENT_POLICY_VERSIONS["research_guidelines"], research_guidelines_accepted),
+        ]
+        if user.role in {"reviewer", "editor", "editor_in_chief"}:
+            accepted.extend([
+                ("publication_ethics", CURRENT_POLICY_VERSIONS["publication_ethics"], publication_ethics_accepted),
+                ("reviewer_guidelines", CURRENT_POLICY_VERSIONS["reviewer_guidelines"], reviewer_guidelines_accepted),
+            ])
+        PolicyAcceptance.objects.bulk_create([
+            PolicyAcceptance(user=user, policy_type=kind, policy_version=version)
+            for kind, version, is_accepted in accepted if is_accepted
+        ])
 
         if user.role in {"reviewer", "editor", "editor_in_chief"}:
 
@@ -443,7 +496,7 @@ class ArticleSerializer(serializers.ModelSerializer):
         if not obj.handling_editor:
             return None
         context = dict(self.context)
-        if self._viewer() and self._viewer().role == "reviewer":
+        if self._viewer() and getattr(self._viewer(), "is_authenticated", False) and getattr(self._viewer(), "role", None) == "reviewer":
             context["anonymize_user"] = True
         return UserSerializer(obj.handling_editor, context=context).data
 
@@ -804,6 +857,13 @@ class ResearchSandboxNoteSerializer(serializers.ModelSerializer):
         read_only_fields = ["author", "workspace", "created_at", "updated_at"]
 
 
+class ResearchSandboxRunSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResearchSandboxRun
+        fields = "__all__"
+        read_only_fields = ["workspace", "created_at", "updated_at"]
+
+
 class ResearchSandboxDatasetSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResearchSandboxDataset
@@ -814,9 +874,10 @@ class ResearchSandboxDatasetSerializer(serializers.ModelSerializer):
 class ResearchSandboxWorkspaceSerializer(serializers.ModelSerializer):
     notes = ResearchSandboxNoteSerializer(many=True, read_only=True)
     datasets = ResearchSandboxDatasetSerializer(many=True, read_only=True)
+    runs = ResearchSandboxRunSerializer(many=True, read_only=True)
     owner_profile = UserSerializer(source="owner", read_only=True)
 
     class Meta:
         model = ResearchSandboxWorkspace
-        fields = ["id", "owner", "owner_profile", "title", "description", "research_topic", "visibility", "status", "notes", "datasets", "created_at", "updated_at"]
+        fields = ["id", "owner", "owner_profile", "title", "description", "research_topic", "visibility", "status", "notes", "datasets", "runs", "created_at", "updated_at"]
         read_only_fields = ["owner", "created_at", "updated_at"]

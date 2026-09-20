@@ -152,17 +152,17 @@ export default function DashboardLayout({
 
             <img
               src="/logo.png"
-              alt="RSJH"
+              alt="RSRE"
               className="h-10 w-auto"
             />
 
             <div>
               <h1 className="font-bold text-white text-lg">
-                RSJH
+                RSJH Journal Workspace
               </h1>
 
               <p className="text-xs text-blue-200">
-                Rwanda Student Journal for Health
+                RSRE · Rwanda Student Journal for Health
               </p>
             </div>
 
@@ -242,12 +242,11 @@ export default function DashboardLayout({
           <div className="mb-8">
 
             <h2 className="text-xl font-bold">
-              Research Platform
+              RSJH Journal Workspace
             </h2>
 
             <p className="text-blue-200 text-sm mt-2 leading-relaxed">
-              Scientific communication for Rwanda
-              and Africa
+              Manuscripts, peer review and editorial workflows inside the wider RSRE ecosystem.
             </p>
 
           </div>

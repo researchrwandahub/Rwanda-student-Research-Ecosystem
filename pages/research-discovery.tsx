@@ -112,24 +112,32 @@ export default function Discovery() {
           </form>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <select value={source} onChange={e => setSource(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm">
+            {/* Explicit text-white + a dark colorScheme fix the readability bug: without
+                a text color class these selects inherited black text (the browser
+                default) on top of the dark bg-slate-900 background. colorScheme:'dark'
+                also tells the browser to render the native option-list popup with a
+                dark theme instead of assuming light, which fixes the same problem
+                inside the open dropdown, not just the closed control. */}
+            <select value={source} onChange={e => setSource(e.target.value)} style={{ colorScheme: 'dark' }} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
               <option value="all">All sources</option>
-              <option value="rsjh">Local RSRE only</option>
+              <option value="rsjh">RSRE journal records</option>
               <option value="pubmed">PubMed / NCBI</option>
               <option value="openalex">OpenAlex</option>
               <option value="crossref">Crossref</option>
               <option value="europepmc">Europe PMC</option>
             </select>
-            <select value={year} onChange={e => setYear(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm">
+            <select value={year} onChange={e => setYear(e.target.value)} style={{ colorScheme: 'dark' }} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
               <option value="">Any year</option>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
-            <select value={oa} onChange={e => setOa(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm">
+            <select value={oa} onChange={e => setOa(e.target.value)} style={{ colorScheme: 'dark' }} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
               <option value="all">Any access</option>
               <option value="true">Open access</option>
               <option value="false">Closed access (confirmed)</option>
             </select>
           </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">{Object.entries(status).map(([name,value])=><div key={name} className="rounded-xl border border-slate-700 bg-slate-900 p-3"><div className="text-[11px] font-black uppercase tracking-wide text-slate-400">{name}</div><div className="mt-1 text-sm font-black text-white">{value === 'ok' ? 'Available' : value === 'unavailable' ? 'Temporarily unavailable' : value.replace('_',' ')}</div></div>)}</div>
+          <div className="mt-4 text-xs leading-5 text-slate-400">Citation counts and open-access status are source-dependent. An unknown value is not the same as zero or closed access.</div>
           <div className="mt-5 flex flex-wrap gap-2" aria-label="Rwanda-focused search ideas">
             {['malaria Rwanda', 'digital health Rwanda', 'maternal health Rwanda', 'community health workers Rwanda', 'health information systems Rwanda', 'implementation research Rwanda'].map(term => (
               <button key={term} type="button" onClick={() => setQuery(term)} className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-emerald-400 hover:text-white">{term}</button>
