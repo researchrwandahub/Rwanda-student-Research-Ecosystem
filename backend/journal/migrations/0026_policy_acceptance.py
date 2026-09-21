@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'journal_user'::regclass AND contype = 'p') THEN ALTER TABLE journal_user ADD CONSTRAINT journal_user_pkey PRIMARY KEY (id); END IF; END $$;","ALTER TABLE journal_user DROP CONSTRAINT IF EXISTS journal_user_pkey;"),
+        migrations.RunSQL("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'journal_user'::regclass AND contype = 'p') THEN ALTER TABLE journal_user ADD CONSTRAINT journal_user_pkey PRIMARY KEY (id); END IF; END $$;",migrations.RunSQL.noop),
         migrations.CreateModel(
             name="PolicyAcceptance",
             fields=[
@@ -38,6 +38,7 @@ class Migration(migrations.Migration):
             },
         ),
     ]
+
 
 
 

@@ -6,6 +6,7 @@ class Migration(migrations.Migration):
     dependencies = [("journal", "0026_policy_acceptance")]
 
     operations = [
+                migrations.RunSQL("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'journal_researchsandboxworkspace'::regclass AND contype = 'p') THEN ALTER TABLE journal_researchsandboxworkspace ADD CONSTRAINT journal_researchsandboxworkspace_pkey PRIMARY KEY (id); END IF; END $$;",migrations.RunSQL.noop),
         migrations.CreateModel(
             name="ResearchSandboxRun",
             fields=[
@@ -22,3 +23,6 @@ class Migration(migrations.Migration):
             options={"ordering": ["-updated_at", "-created_at"]},
         ),
     ]
+
+
+
