@@ -10,6 +10,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL("ALTER TABLE journal_user ADD CONSTRAINT journal_user_id_unique UNIQUE (id);","ALTER TABLE journal_user DROP CONSTRAINT IF EXISTS journal_user_id_unique;"),
         migrations.CreateModel(
             name="PolicyAcceptance",
             fields=[
@@ -37,3 +38,7 @@ class Migration(migrations.Migration):
             },
         ),
     ]
+
+
+
+
