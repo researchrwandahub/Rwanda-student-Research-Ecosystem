@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import api from "../utils/api";
 import { completeAuth } from "../utils/completeAuth";
@@ -9,14 +9,14 @@ declare global {
   }
 }
 
-const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "478335657501-4j1vm1o46as48agboalmh6cdj8j1953l.apps.googleusercontent.com";
 
 console.log(
   "Google Client ID configured:",
-  Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+  Boolean(CLIENT_ID)
 );
 // This component simply doesn't render anything if Google sign-in isn't
-// configured — per the explicit requirement not to show "Continue with
+// configured â€” per the explicit requirement not to show "Continue with
 // Google" advertising a feature that can't actually work. Set
 // NEXT_PUBLIC_GOOGLE_CLIENT_ID (frontend, public/safe) and
 // GOOGLE_CLIENT_ID (backend, same value) to enable it.
@@ -83,3 +83,4 @@ export default function GoogleSignInButton() {
     </div>
   );
 }
+
