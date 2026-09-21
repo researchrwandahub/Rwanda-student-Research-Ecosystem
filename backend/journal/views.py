@@ -1,4 +1,4 @@
-from urllib.error import HTTPError, URLError
+﻿from urllib.error import HTTPError, URLError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -522,20 +522,43 @@ class CustomTokenObtainPairSerializer(
 ):
 
     def validate(self, attrs):
-        # Authenticate first (this is where a wrong username/password already
-        # fails) â€” only after real credentials succeed do we check
-        # verification, so a bad password still reports as a bad password,
-        # not as an unverified-email error.
-        data = super().validate(attrs)
-        # Superusers are created via `createsuperuser` (or the Django admin),
-        # not the public registration flow, so they never go through the
-        # email-verification email in the first place. Exempting them avoids
-        # locking out existing administrator accounts with this new check.
-        if not self.user.email_verified and not self.user.is_superuser:
+        username = attrs.get(self.username_field)
+        password = attrs.get("password")
+
+        try:
+            user = User.objects.get(**{self.username_field: username})
+        except User.DoesNotExist:
+            raise AuthenticationFailed(
+                "No active account found with the given credentials"
+            )
+
+        if not user.is_active:
+            raise AuthenticationFailed(
+                "No active account found with the given credentials"
+            )
+
+        if not user.check_password(password):
+            raise AuthenticationFailed(
+                "No active account found with the given credentials"
+            )
+
+        if hasattr(user, "account_status") and user.account_status != "active":
+            raise AuthenticationFailed(
+                "Your RMSJ account has been suspended."
+            )
+
+        if not user.email_verified and not user.is_superuser:
             raise ValidationError({
                 "detail": "Please verify your email before signing in. Check your inbox for the verification link."
             })
-        return data
+
+        self.user = user
+        refresh = self.get_token(user)
+
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
 
     @classmethod
     def get_token(cls, user):
@@ -1067,7 +1090,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
             user,
             "Draft created successfully",
             f'Your manuscript draft "{article.title}" has been created successfully. You can continue developing it from your author dashboard.',
-            "RSJH â€” Draft created successfully",
+            "RSJH Ã¢â‚¬â€ Draft created successfully",
         )
 
 
@@ -1254,7 +1277,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
             article.author,
             "Manuscript submitted",
             f"Dear Author,\n\nYour manuscript \"{article.title}\" has been successfully submitted to the Rwanda Student Journal for Health.\n\nThe next stage is editorial screening. The editorial team will assess scope, completeness and readiness for peer review.\n\nYou can track the manuscript status from your author dashboard.",
-            "RSJH â€” Manuscript Submitted",
+            "RSJH Ã¢â‚¬â€ Manuscript Submitted",
             f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/dashboard",
             "Track Manuscript",
         )
@@ -1263,7 +1286,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
                 editor,
                 "New manuscript submitted",
                 f"Dear Editor,\n\nA new manuscript has been submitted to RSJH and is awaiting editorial screening.\n\nManuscript: {article.title}\n\nPlease review the submission for scope, completeness, ethics and readiness for peer review.",
-                "RSJH â€” New Manuscript Submitted",
+                "RSJH Ã¢â‚¬â€ New Manuscript Submitted",
                 f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/dashboard",
                 "Open Editorial Dashboard",
             )
@@ -1456,7 +1479,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
             article.author,
             "Reviewer feedback available",
             f"Dear Author,\n\nReviewer feedback is now available for \"{article.title}\".\n\n{message}\n\nPlease review the comments carefully and follow the next action shown in your RSJH dashboard.",
-            "RSJH â€” Reviewer Feedback Available",
+            "RSJH Ã¢â‚¬â€ Reviewer Feedback Available",
             f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/dashboard",
             "View Reviewer Feedback",
         )
@@ -1469,7 +1492,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 editor,
                 "Reviewer feedback submitted",
                 f"Dear Editor,\n\nA reviewer has completed feedback for \"{article.title}\".\n\n{message}\n\nPlease open the editorial dashboard to review the report and determine the next editorial action.",
-                "RSJH â€” Reviewer Feedback Submitted",
+                "RSJH Ã¢â‚¬â€ Reviewer Feedback Submitted",
                 f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/dashboard",
                 "Open Editorial Dashboard",
             )
@@ -1735,7 +1758,7 @@ class EditorialDecisionViewSet(viewsets.ModelViewSet):
                 article.author,
                 "Manuscript accepted",
                 "\n".join(metadata_lines) + "\n\nYour manuscript has been accepted for publication.",
-                "RSJH â€” Manuscript Accepted",
+                "RSJH Ã¢â‚¬â€ Manuscript Accepted",
                 dashboard_url,
                 "View Publication Details",
             )
@@ -1744,7 +1767,7 @@ class EditorialDecisionViewSet(viewsets.ModelViewSet):
                 article.author,
                 "Article published",
                 "\n".join(metadata_lines) + "\n\nYour article is now published in the RSJH archive.",
-                "RSJH â€” Your Article Has Been Published",
+                "RSJH Ã¢â‚¬â€ Your Article Has Been Published",
                 dashboard_url,
                 "View Published Article",
             )
@@ -1754,7 +1777,7 @@ class EditorialDecisionViewSet(viewsets.ModelViewSet):
                 article.author,
                 "Revision required",
                 "\n".join(metadata_lines) + "\n\nPlease review the editorial rationale and submit your revision through the RSJH dashboard.",
-                "RSJH â€” Revision Required",
+                "RSJH Ã¢â‚¬â€ Revision Required",
                 dashboard_url,
                 "Submit Revision",
             )
@@ -1763,7 +1786,7 @@ class EditorialDecisionViewSet(viewsets.ModelViewSet):
                 article.author,
                 "Manuscript rejected",
                 "\n".join(metadata_lines) + "\n\nPlease review the editorial rationale provided in your RSJH dashboard.",
-                "RSJH â€” Editorial Decision",
+                "RSJH Ã¢â‚¬â€ Editorial Decision",
                 dashboard_url,
                 "View Editorial Decision",
             )
@@ -2420,11 +2443,11 @@ class GoogleAuthView(APIView):
     """Real server-side Google sign-in, not a decorative button.
 
     Verifies the ID token directly against Google's own tokeninfo endpoint
-    (no new dependency needed â€” reuses `requests`, already required by
+    (no new dependency needed Ã¢â‚¬â€ reuses `requests`, already required by
     Discovery). Checks issuer, audience (our configured client ID) and
     that Google itself marks the email verified, then finds or creates the
-    matching RSRE user via the stable Google `sub` claim â€” never by email
-    or display name alone â€” and issues the exact same JWT pair normal
+    matching RSRE user via the stable Google `sub` claim Ã¢â‚¬â€ never by email
+    or display name alone Ã¢â‚¬â€ and issues the exact same JWT pair normal
     login produces, so the rest of the app treats it identically.
     """
     permission_classes = [AllowAny]
@@ -2451,7 +2474,7 @@ class GoogleAuthView(APIView):
             return Response({"detail": "Could not verify Google credential. Please try again."}, status=502)
 
         # Google returns a 200 with an "error_description" field for a bad
-        # token rather than a non-200 status in some cases â€” check explicitly.
+        # token rather than a non-200 status in some cases Ã¢â‚¬â€ check explicitly.
         if payload.get("error_description"):
             return Response({"detail": "Google sign-in failed: invalid credential."}, status=401)
         if payload.get("aud") != client_id:
@@ -2472,7 +2495,7 @@ class GoogleAuthView(APIView):
             user = identity.user
         else:
             # Never silently attach a Google login to an existing
-            # password-based account just because the email matches â€”
+            # password-based account just because the email matches Ã¢â‚¬â€
             # emails can be reused/reassigned, and doing so could let
             # someone hijack an existing account by controlling that
             # Gmail inbox. Only a brand-new account is created here.
@@ -2651,7 +2674,7 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
         if milestone.status == "done" and not was_done:
             from rsre_core.services import emit_research_event
             emit_research_event(
-                project.owner, subject="RSRE â€” research milestone completed",
+                project.owner, subject="RSRE Ã¢â‚¬â€ research milestone completed",
                 message=f"Milestone completed: {milestone.title} in {project.title}. Your next project action is now ready.",
                 event_key="incubator_milestone_completed", application_key="incubator",
                 action_url=f"/incubator/{project.id}",
@@ -2659,7 +2682,7 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
             )
             for member in project.members.filter(status="active").select_related("user"):
                 if member.user_id != project.owner_id:
-                    emit_research_event(member.user, subject="RSRE â€” project milestone completed", message=f"{milestone.title} was completed in {project.title}.", event_key="incubator_milestone_team_update", application_key="incubator", action_url=f"/incubator/{project.id}")
+                    emit_research_event(member.user, subject="RSRE Ã¢â‚¬â€ project milestone completed", message=f"{milestone.title} was completed in {project.title}.", event_key="incubator_milestone_team_update", application_key="incubator", action_url=f"/incubator/{project.id}")
         return Response(ResearchProjectMilestoneSerializer(milestone).data)
 
     @action(detail=True, methods=["post"], url_path="advance")
@@ -2673,7 +2696,7 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
         project.status = next_status; project.save(update_fields=["status", "updated_at"])
         from rsre_core.services import emit_research_event
         emit_research_event(
-            project.owner, subject="RSRE â€” research project stage updated",
+            project.owner, subject="RSRE Ã¢â‚¬â€ research project stage updated",
             message=f"{project.title} moved to {project.get_status_display()}. Review the next recommended action in your project cockpit.",
             event_key="incubator_stage_updated", application_key="incubator", action_url=f"/incubator/{project.id}",
         )
@@ -2783,7 +2806,7 @@ class ResearchDiscoveryView(APIView):
         # shared state, so they run concurrently instead of one after
         # another. Sequentially, a worst-case search (source=all, every
         # source slow) could take up to ~32 seconds (4 x 8s timeout)
-        # before responding at all â€” long enough to look "unavailable"
+        # before responding at all Ã¢â‚¬â€ long enough to look "unavailable"
         # even when every source eventually would have answered. Running
         # them in parallel caps the worst case at ~8 seconds.
 
@@ -3293,7 +3316,7 @@ class ResearchPassportView(APIView):
             "pathway": [
                 {"stage": "Learn", "done": completed_learning > 0, "detail": f"{completed_learning} verified learning records"},
                 {"stage": "Build", "done": projects.exists(), "detail": f"{projects.count()} research projects"},
-                {"stage": "Contribute", "done": reviews.exists() or milestones > 0, "detail": f"{reviews.count()} peer reviews Â· {milestones} completed milestones"},
+                {"stage": "Contribute", "done": reviews.exists() or milestones > 0, "detail": f"{reviews.count()} peer reviews Ã‚Â· {milestones} completed milestones"},
                 {"stage": "Publish", "done": published.exists(), "detail": f"{published.count()} published articles"},
                 {"stage": "Impact", "done": published.exists() and (projects.filter(status="completed").exists() or reviews.exists()), "detail": "Evidence of sustained research contribution"},
             ],
@@ -3466,3 +3489,4 @@ class AdminGiftPaymentConfirmView(APIView):
             gift.sent_at = timezone.now()
             gift.save(update_fields=["status", "sent_at", "updated_at"])
         return Response({"status": gift.status, "gift_code": gift.gift_code, "email_sent": sent})
+
