@@ -25,7 +25,7 @@ from rest_framework.permissions import (
     IsAuthenticated,
 )
 
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied, ValidationError
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -3489,4 +3489,5 @@ class AdminGiftPaymentConfirmView(APIView):
             gift.sent_at = timezone.now()
             gift.save(update_fields=["status", "sent_at", "updated_at"])
         return Response({"status": gift.status, "gift_code": gift.gift_code, "email_sent": sent})
+
 
