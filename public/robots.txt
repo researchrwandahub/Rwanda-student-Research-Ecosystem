@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /rsre-admin
+Disallow: /profile
+Disallow: /notifications
+Disallow: /submit
+Disallow: /review
+Disallow: /collaboration
+Disallow: /research-incubator
+Disallow: /research-sandbox
+Disallow: /research-passport
+Disallow: /articles/create
+Disallow: /founder/dashboard
+Disallow: /author/dashboard
+Disallow: /research-academy/admin
+Disallow: /research-academy/dashboard
+Disallow: /research-academy/module/
+Disallow: /research-academy/certificate/
+Disallow: /research-academy/certificates
+Disallow: /research-academy/diagnostic
+Disallow: /research-academy/labs/
+Disallow: /research-academy/questions
+
+Sitemap: https://rsre-frontend.onrender.com/sitemap.xml
