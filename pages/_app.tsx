@@ -2,6 +2,7 @@ import type { AppProps } from "next/app";
 import { Source_Serif_4, Inter } from "next/font/google";
 import { LanguageProvider } from "../context/LanguageContext";
 import "../styles/globals.css";
+import RSRESeoHead from "../components/RSRESeoHead";
 
 // Two families, clearly distinct roles: a serif for headlines/editorial
 // content (academic authority) and a sans for everything functional (body
@@ -25,6 +26,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <main className={`${serif.variable} ${sans.variable} font-sans`}>
       <LanguageProvider>
+        <RSRESeoHead />
         <Component {...pageProps} />
       </LanguageProvider>
     </main>
